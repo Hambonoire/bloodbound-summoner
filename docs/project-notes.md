@@ -6,6 +6,17 @@ Early prototype. `main.js` is a stub — no game logic implemented yet.
 `game-design.md` is the active source of truth for all mechanics.
 No UI layer. All development is console-first until further notice.
 
+Systems implemented:
+
+- Player state, Pain meter, Blood pool, Marrow
+- Card play, cost resolution, effect logging
+- Combat encounter loop (player turn, enemy turn, win/loss check)
+- Draw system (deck, hand, discard, reshuffle with Blood drain penalty)
+- Pack reward selection
+- Shop (browse, buy, refresh)
+- Act 1 node map structure (travel, unlock, secret discovery)
+- Match reset
+
 ---
 
 ## What's Been Decided
@@ -82,8 +93,8 @@ No UI layer. All development is console-first until further notice.
 9. ✅ Add pack reward selection
 10. ✅ Stub out Act 1 node map structure
 11. ✅ Add Marrow tracking
-12. Draw system: shuffle run.collection into player.deck, deal opening hand
-13. Shop node logic: browse and purchase cards using Marrow
+12. ✅ Draw system: shuffle run.collection into player.deck, deal opening hand
+13. ✅ Shop node logic: browse and purchase cards using Marrow
 14. Ritual, Rest, Curse, Mystery node resolution
 15. Gatekeeper artifact check
 16. Champion + Apex tier cards for both archetypes
