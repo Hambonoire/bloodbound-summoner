@@ -44,6 +44,7 @@ Systems implemented:
 - Exact Marrow earn rates per node type
 - Starting deck composition — which cards does the player begin a run with?
 - How many nodes per act, and what is the rough ratio of node types?
+- What is the intended baseline battlefield summon cap, and should relics/cards be able to raise it temporarily or permanently?
 
 ---
 
@@ -65,6 +66,10 @@ Systems implemented:
 - `run.discoveredHints` tracks hints per run. Cross-run hint persistence will need a save/storage system — pinned for when save state is scoped.
 - `buildDeck()` requires run.collection to be populated before it's called. Calling resetMatch() on a fresh run with an empty collection will deal an empty hand. Starting deck composition (task list open question) needs to be resolved and seeded into run.collection before the first match.
 - Shop inventory pools from Minion + Warrior tier only. When Champion and Apex cards are added (task 16), shop should weight by act — Act 1: Minion/Warrior only, Act 2: add Champion, Act 3: add Apex. Pass current act into generateShopInventory() when that's implemented.
+- Hand cap is now 7. End-of-turn overflow is resolved by auto-discarding from the end of `player.hand` until the hand returns to 7. Player discard choice is a TODO for later UI/input support.
+- Each forced discard drains 2 Blood and currently floors at 0.
+- `drawCard()` reshuffles `player.discard` into `player.deck` when the deck is empty and discard has cards.
+- Battlefield summon cap added. Summon cards cannot be played if the field is already at cap.
 
 ---
 
@@ -93,7 +98,7 @@ Systems implemented:
 9. ✅ Add pack reward selection
 10. ✅ Stub out Act 1 node map structure
 11. ✅ Add Marrow tracking
-12. ✅ Draw system: shuffle run.collection into player.deck, deal opening hand
+12. ✅ Draw system: shuffle run.collection into player.deck, deal opening hand.
 13. ✅ Shop node logic: browse and purchase cards using Marrow
 14. Ritual, Rest, Curse, Mystery node resolution
 15. Gatekeeper artifact check
