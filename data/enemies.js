@@ -1,0 +1,80 @@
+const enemies = [
+  // --- GRUNTS ---
+
+  {
+    id: "grunt_01",
+    name: "Shambling Corpse",
+    tier: "grunt",
+    archetype: "undead",
+    hp: 6,
+    maxHp: 6,
+    attack: 2,
+    armor: 0,
+    intent: "attack", // "attack" | "block" | "curse" | "heal"
+    effect: null,
+  },
+  {
+    id: "grunt_02",
+    name: "Bloodstarved Hound",
+    tier: "grunt",
+    archetype: "bloodhunter",
+    hp: 5,
+    maxHp: 5,
+    attack: 3,
+    armor: 0,
+    intent: "attack",
+    effect: "Deals +1 damage for every 5 HP the player is missing.",
+  },
+  {
+    id: "grunt_03",
+    name: "Hollow Thrall",
+    tier: "grunt",
+    archetype: "undead",
+    hp: 8,
+    maxHp: 8,
+    attack: 1,
+    armor: 0,
+    intent: "attack",
+    effect: "On death: heals the next enemy in the encounter for 2 HP.",
+  },
+
+  // --- SOLDIERS ---
+
+  {
+    id: "soldier_01",
+    name: "Boneguard",
+    tier: "soldier",
+    archetype: "undead",
+    hp: 16,
+    maxHp: 16,
+    attack: 3,
+    armor: 2,
+    intent: "block",
+    effect: null,
+  },
+  {
+    id: "soldier_02",
+    name: "Cursebrand Warrior",
+    tier: "soldier",
+    archetype: "cursebinder",
+    hp: 14,
+    maxHp: 14,
+    attack: 2,
+    armor: 1,
+    intent: "curse",
+    effect:
+      "On attack: applies Bleed to the player (1 self-damage per turn for 2 turns).",
+  },
+  {
+    id: "soldier_03",
+    name: "Vein Sentinel",
+    tier: "soldier",
+    archetype: "bloodhunter",
+    hp: 18,
+    maxHp: 18,
+    attack: 4,
+    armor: 2,
+    intent: "attack",
+    effect: "Rage: gains +1 attack each time it takes damage.",
+  },
+];
