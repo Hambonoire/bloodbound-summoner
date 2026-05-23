@@ -200,7 +200,7 @@ function playerTurn(card) {
   if (!encounter.active) return;
   console.log(`-- Player Turn ${encounter.turn + 1} --`);
   playCard(card);
-  enemyTurn();
+  endPlayerTurn();
 }
 
 function enemyTurn() {
@@ -495,9 +495,69 @@ function travelToNode(id) {
   console.log(`Traveling to: ${node.title} [${node.type}]`);
 }
 
-// --- Draw System ---
+// --- Draw System + Draw / Field Limits + Discard Penalty ---
 
 const HAND_SIZE = 5;
+const MAX_HAND_SIZE = 7;
+const MAX_FIELD_SIZE = 5;
+const FORCED_DISCARD_BLOOD_DRAIN = 2;
+
+function canPlayCard(card) {
+  if (card.type === "summon" && player.field.length >= MAX_FIELD_SIZE) {
+    console.log(`Field is full. Cannot summon: ${card.name}`);
+    return false;
+  }
+
+  return canAfford(card);
+}
+
+function playCard(card) {
+  if (!canPlayCard(card)) {
+    console.log(`Cannot play: ${card.name}`);
+    return false;
+  }
+
+  payCost(card);
+  applyEffect(card);
+
+  if (card.type === "summon") {
+    player.field.push(card);
+    console.log(
+      `Summoned: ${card.name} | ATK: ${card.attack + player.summonAttackBonus} | DEF: ${card.defense} | Field: ${player.field.length}/${MAX_FIELD_SIZE}`,
+    );
+  }
+
+  discardCard(card.id);
+
+  return true;
+}
+
+function drainBlood(amount) {
+  const drained = Math.min(player.blood, amount);
+  player.blood -= drained;
+  console.log(`Blood drained: ${drained} | Blood: ${player.blood}`);
+  return drained;
+}
+
+function endTurnDiscardDownToLimit() {
+  if (player.hand.length <= MAX_HAND_SIZE) return;
+
+  console.log(
+    `Hand exceeds limit (${player.hand.length}/${MAX_HAND_SIZE}). Discarding down to cap...`,
+  );
+
+  while (player.hand.length > MAX_HAND_SIZE) {
+    const card = player.hand[player.hand.length - 1];
+    console.log(`Forced discard: ${card.name}`);
+    discardCard(card.id);
+    drainBlood(FORCED_DISCARD_BLOOD_DRAIN);
+  }
+}
+
+function endPlayerTurn() {
+  endTurnDiscardDownToLimit();
+  enemyTurn();
+}
 
 function buildDeck() {
   player.deck = shuffle([...run.collection]);
@@ -562,8 +622,6 @@ function shuffle(arr) {
 }
 
 // -- Draw System End --
-
-// main.js — add below shuffle()
 
 // --- Shop ---
 
