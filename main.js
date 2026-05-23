@@ -47,6 +47,8 @@ function playCard(card) {
     );
   }
 
+  discardCard(card.id);
+
   return true;
 }
 
@@ -311,8 +313,8 @@ function checkEncounterEnd() {
 function resetMatch() {
   // field, hand, discard reset
   player.field = [];
-  player.hand = [];
-  player.discard = [];
+  buildDeck();
+  dealOpeningHand();
 
   // Pain meter reset
   player.pain = 0;
@@ -492,5 +494,137 @@ function travelToNode(id) {
   act1Map.currentNodeId = id;
   console.log(`Traveling to: ${node.title} [${node.type}]`);
 }
+
+// --- Draw System ---
+
+const HAND_SIZE = 5;
+
+function buildDeck() {
+  player.deck = shuffle([...run.collection]);
+  player.hand = [];
+  player.discard = [];
+  console.log(`Deck built. ${player.deck.length} cards.`);
+}
+
+function dealOpeningHand() {
+  for (let i = 0; i < HAND_SIZE; i++) {
+    drawCard();
+  }
+  console.log(
+    `Opening hand dealt: ${player.hand.map((c) => c.name).join(", ")}`,
+  );
+}
+
+function drawCard() {
+  if (player.deck.length === 0) {
+    if (player.discard.length === 0) {
+      console.log("No cards left to draw.");
+      return null;
+    }
+    reshuffleDeck();
+  }
+
+  const card = player.deck.pop();
+  player.hand.push(card);
+  console.log(`Drew: ${card.name} | Hand: ${player.hand.length}`);
+  return card;
+}
+
+function reshuffleDeck() {
+  player.deck = shuffle([...player.discard]);
+  player.discard = [];
+  console.log(`Deck reshuffled from discard. ${player.deck.length} cards.`);
+}
+
+function discardCard(cardId) {
+  const index = player.hand.findIndex((c) => c.id === cardId);
+  if (index === -1) {
+    console.log("Card not in hand.");
+    return;
+  }
+  const card = player.hand.splice(index, 1)[0];
+  player.discard.push(card);
+  console.log(`Discarded: ${card.name} | Hand: ${player.hand.length}`);
+}
+
+function discardHand() {
+  player.discard.push(...player.hand);
+  player.hand = [];
+  console.log("Full hand discarded.");
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// -- Draw System End --
+
+// main.js — add below shuffle()
+
+// --- Shop ---
+
+const shop = {
+  inventory: [],
+  refreshCost: 3,
+};
+
+function openShop() {
+  shop.inventory = generateShopInventory();
+  console.log("--- Shop ---");
+  shop.inventory.forEach((item, i) => {
+    console.log(
+      `[${i}] ${item.card.name} (${item.card.tier} / ${item.card.archetype}) | Cost: ${item.price} Marrow`,
+    );
+  });
+  console.log(`Marrow: ${player.marrow}`);
+}
+
+function generateShopInventory() {
+  const pool = cards.filter((c) => c.tier === "minion" || c.tier === "warrior");
+  return drawRandom(pool, 4).map((card) => ({
+    card,
+    price: shopPrice(card),
+    sold: false,
+  }));
+}
+
+function shopPrice(card) {
+  const base = { minion: 4, warrior: 7, champion: 12, apex: 20 };
+  return base[card.tier] ?? 5;
+}
+
+function buyCard(index) {
+  const item = shop.inventory[index];
+
+  if (!item) {
+    console.log("Invalid selection.");
+    return false;
+  }
+  if (item.sold) {
+    console.log("Already sold.");
+    return false;
+  }
+  if (!spendMarrow(item.price)) return false;
+
+  item.sold = true;
+  run.collection.push(item.card);
+  console.log(
+    `Purchased: ${item.card.name} | Marrow: ${player.marrow} | Collection: ${run.collection.length}`,
+  );
+  return true;
+}
+
+function refreshShop() {
+  if (!spendMarrow(shop.refreshCost)) return;
+  shop.inventory = generateShopInventory();
+  console.log("Shop refreshed.");
+  openShop();
+}
+
+// -- Shop End --
 
 console.log(game);
