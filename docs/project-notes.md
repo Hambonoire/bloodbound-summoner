@@ -52,6 +52,8 @@ No UI layer. All development is console-first until further notice.
 - `run.collection` holds all acquired cards but doesn't yet feed into player.deck. Will need a shuffle + deal step when draw system is built.
 - Act 1 map is hardcoded for now. Procedural or semi-random map generation is a future consideration once the node structure is proven.
 - `run.discoveredHints` tracks hints per run. Cross-run hint persistence will need a save/storage system — pinned for when save state is scoped.
+- `buildDeck()` requires run.collection to be populated before it's called. Calling resetMatch() on a fresh run with an empty collection will deal an empty hand. Starting deck composition (task list open question) needs to be resolved and seeded into run.collection before the first match.
+- Shop inventory pools from Minion + Warrior tier only. When Champion and Apex cards are added (task 16), shop should weight by act — Act 1: Minion/Warrior only, Act 2: add Champion, Act 3: add Apex. Pass current act into generateShopInventory() when that's implemented.
 
 ---
 
