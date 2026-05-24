@@ -363,11 +363,56 @@ function startRun(startingArchetype) {
   run.discoveredHints = [];
 
   // TODO (Task 18): seed starting deck into run.collection based on startingArchetype
+  const deckIds = STARTING_DECKS[startingArchetype];
+  if (!deckIds) {
+    console.log(
+      `Unknown starting archetype: ${startingArchetype}. No starting deck seeded.`,
+    );
+  } else {
+    deckIds.forEach((id) => {
+      const card = getCardById(id);
+      if (card) {
+        run.collection.push(card);
+      } else {
+        console.log(`Warning: starting deck card ID not found: ${id}`);
+      }
+    });
+    console.log(
+      `Starting deck seeded for ${startingArchetype}: ${run.collection.length} cards.`,
+    );
+  }
 
   console.log(
     `Run started with archetype: ${startingArchetype}. HP: ${player.hp}, Pain: ${player.pain}, Blood: ${player.blood}, Marrow: ${player.marrow}`,
   );
 }
+
+const STARTING_DECKS = {
+  "blood-flesh": [
+    "bf_minion_01",
+    "bf_minion_01",
+    "bf_minion_02",
+    "bf_minion_02",
+    "bf_minion_03",
+    "bf_warrior_01",
+    "bf_warrior_01",
+    "bf_warrior_02",
+    "bf_warrior_02",
+    "bf_warrior_03",
+  ],
+  "undead-bone": [
+    "ub_minion_01",
+    "ub_minion_01",
+    "ub_minion_02",
+    "ub_minion_02",
+    "ub_minion_03",
+    "ub_warrior_01",
+    "ub_warrior_01",
+    "ub_warrior_02",
+    "ub_warrior_02",
+    "ub_warrior_03",
+  ],
+};
 
 const run = {
   collection: [],
@@ -458,6 +503,10 @@ function selectPack(options, index) {
 function drawRandom(pool, count) {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
+}
+
+function getCardById(id) {
+  return cards.find((c) => c.id === id) || null;
 }
 
 function rollMarrow(min, max) {
@@ -925,5 +974,9 @@ function resolveMystery(node) {
 }
 
 // -- Node Resolution End --
+
+startRun("blood-flesh");
+buildDeck();
+dealOpeningHand();
 
 console.log(game);
