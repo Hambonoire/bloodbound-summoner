@@ -188,11 +188,16 @@ const encounter = {
 };
 
 function startEncounter(enemyList) {
-  encounter.enemies = enemyList.map((e) => ({ ...e })); // shallow copy
+  encounter.enemies = enemyList.map((e) => ({
+    ...e, // shallow copy
+    intentIndex: 0, // track position in this enemy's intent cycle
+  }));
   encounter.turn = 0;
   encounter.active = true;
   console.log(
-    `--- Encounter started: ${encounter.enemies.map((e) => e.name).join(", ")} ---`,
+    `--- Encounter started: ${encounter.enemies
+      .map((e) => e.name)
+      .join(", ")} ---`,
   );
 }
 
@@ -216,7 +221,9 @@ function enemyTurn() {
 }
 
 function executeEnemyIntent(enemy) {
-  switch (enemy.intent) {
+  const intent = chooseNextIntent(enemy);
+
+  switch (intent) {
     case "attack":
       enemyAttack(enemy);
       break;
@@ -225,14 +232,45 @@ function executeEnemyIntent(enemy) {
       console.log(`${enemy.name} braces. Armor: ${enemy.armor}`);
       break;
     case "curse":
-      console.log(`${enemy.name} applies a curse. [Effect: ${enemy.effect}]`);
       // TODO: implement curse application
+      console.log(`${enemy.name} applies a curse. [Effect: ${enemy.effect}]`);
       break;
     case "heal":
       enemy.hp = Math.min(enemy.hp + 3, enemy.maxHp);
       console.log(`${enemy.name} heals. HP: ${enemy.hp}`);
       break;
+    default:
+      console.log(
+        `${enemy.name} hesitates. Unknown intent: ${intent}. Defaulting to attack.`,
+      );
+      enemyAttack(enemy);
+      break;
   }
+}
+
+function chooseNextIntent(enemy) {
+  // If the enemy has an explicit intent list, cycle through it.
+  if (Array.isArray(enemy.intents) && enemy.intents.length > 0) {
+    const index = enemy.intentIndex || 0;
+    const intent = enemy.intents[index];
+    enemy.intentIndex = (index + 1) % enemy.intents.length;
+    return intent;
+  }
+
+  // If there are weights, use weighted random selection over the standard intents.
+  if (enemy.intentWeights) {
+    const entries = Object.entries(enemy.intentWeights);
+    const total = entries.reduce((sum, [, w]) => sum + w, 0);
+    const roll = Math.random() * total;
+    let acc = 0;
+    for (const [intent, weight] of entries) {
+      acc += weight;
+      if (roll <= acc) return intent;
+    }
+  }
+
+  // Fallback: use enemy.intent if set, or default to "attack".
+  return enemy.intent || "attack";
 }
 
 function enemyAttack(enemy) {
