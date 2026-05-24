@@ -77,6 +77,11 @@ Systems implemented:
 - `run.curses` is initialized lazily (`run.curses = run.curses || []`). When `run` is formalized with a start-of-run setup function, seed it there instead.
 - `resolveGatekeeper()`: `run.artifacts` is now tracked, but no artifact reward source exists yet. Gatekeeper nodes that require artifacts will remain blocked until artifact-granting node rewards or boss/secret rewards are implemented.
 - `run.artifacts` currently stores artifact IDs only. If artifact passives or metadata are needed later, move artifact definitions into a dedicated data file and store richer objects or resolve IDs through that data.
+- Champion/Apex cards: `effect` strings are logged only — actual effect resolution (overflow absorption, resurrection, attack debuff) is pending the full effect system. Each will need a dedicated handler when that system is built.
+- `bf_champion_01` (Fleshbinder): "heal 2 HP per summon on field" effect references player.field.length at summon time. When effect resolution is implemented, evaluate whether this fires before or after the summon itself is pushed to the field.
+- `ub_champion_01` (Bonecage Titan): "absorbs overflow damage" changes the blocker resolution logic in `enemyAttack()`. When this effect is implemented, it will need to mark specific summons as overflow-blocking and adjust the damage routing there.
+- `ub_apex_01` (The Hollow King): resurrection from discard requires reading player.discard — will need a target-selection step (auto or player-choice) when effect resolution is built.
+- `apexLocked: true` is the only card-level flag that gates playability right now. If more unlock conditions are added later, consider a more general `requiresFlag` field on cards rather than adding more one-off booleans.
 
 ---
 
@@ -109,4 +114,10 @@ Systems implemented:
 13. ✅ Shop node logic: browse and purchase cards using Marrow
 14. ✅ Ritual, Rest, Curse, Mystery node resolution
 15. ✅ Gatekeeper artifact check
-16. Champion + Apex tier cards for both archetypes
+16. ✅ Champion + Apex tier cards for both archetypes
+17. Add `startRun()` to initialize player, run state, and triggeredMilestones.
+18. Define starting decks per archetype and seed `run.collection` in `startRun()`.
+19. Grant Marrow on combat win in `checkEncounterEnd()` and call `offerPackRewards()`.
+20. Add one Ritual and one Sacrifice support card to `data/cards.js`.
+21. Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
+22. Add one Elite and one Boss enemy per archetype with stats and simple abilities.
