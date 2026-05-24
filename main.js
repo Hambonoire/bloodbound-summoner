@@ -509,6 +509,10 @@ function canPlayCard(card) {
     console.log(`Field is full. Cannot summon: ${card.name}`);
     return false;
   }
+  if (card.apexLocked && !player.apexUnlocked) {
+    console.log(`${card.name} requires Apex unlock (Pain milestone 20).`);
+    return false;
+  }
 
   return canAfford(card);
 }
