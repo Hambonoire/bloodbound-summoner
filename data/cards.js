@@ -143,4 +143,86 @@ const cards = [
     defense: 4,
     effect: "On attack: if a friendly summon died this turn, +3 attack.",
   },
+
+  // --- Champion Tier ---
+
+  // Blood/Flesh Champions
+  {
+    id: "bf_champion_01",
+    name: "Fleshbinder",
+    archetype: "blood-flesh",
+    tier: "champion",
+    type: "summon",
+    cost: { hp: 8, blood: 3 },
+    attack: 5,
+    defense: 4,
+    effect: "On summon: heal 2 HP for each summon already on the field.",
+  },
+  {
+    id: "bf_champion_02",
+    name: "Hemorrhage Knight",
+    archetype: "blood-flesh",
+    tier: "champion",
+    type: "summon",
+    cost: { hp: 6, sacrifice: 1 },
+    attack: 7,
+    defense: 3,
+    effect: "On summon: deal 3 damage to target enemy. Gain 1 Blood.",
+  },
+
+  // Undead/Bone Champions
+  {
+    id: "ub_champion_01",
+    name: "Bonecage Titan",
+    archetype: "undead-bone",
+    tier: "champion",
+    type: "summon",
+    cost: { marrow: 10 },
+    attack: 3,
+    defense: 9,
+    effect: "Absorbs overflow damage before it reaches the player.",
+  },
+  {
+    id: "ub_champion_02",
+    name: "Wailing Revenant",
+    archetype: "undead-bone",
+    tier: "champion",
+    type: "summon",
+    cost: { marrow: 7, hp: 4 },
+    attack: 6,
+    defense: 5,
+    effect: "On summon: all enemies lose 1 attack until your next turn.",
+  },
+
+  // --- Apex Tier ---
+
+  // Blood/Flesh Apex
+  {
+    id: "bf_apex_01",
+    name: "The Blooded Ascendant",
+    archetype: "blood-flesh",
+    tier: "apex",
+    type: "summon",
+    cost: { hp: 15, blood: 5 },
+    attack: 10,
+    defense: 6,
+    apexLocked: true,
+    effect:
+      "On summon: player gains 5 Blood. Deals double damage while player Pain is above 20.",
+  },
+
+  // Undead/Bone Apex
+  {
+    id: "ub_apex_01",
+    name: "The Hollow King",
+    archetype: "undead-bone",
+    tier: "apex",
+    type: "summon",
+    cost: { marrow: 18, sacrifice: 2 },
+    attack: 9,
+    defense: 10,
+    apexLocked: true,
+    effect:
+      "On summon: resurrect one destroyed summon from discard at half its defense.",
+  },
 ];
