@@ -10,7 +10,8 @@ const enemies = [
     maxHp: 6,
     attack: 2,
     armor: 0,
-    intent: "attack", // "attack" | "block" | "curse" | "heal"
+    intent: "attack", // legacy fallback
+    intents: ["attack", "attack", "block"],
     effect: null,
   },
   {
@@ -61,7 +62,8 @@ const enemies = [
     maxHp: 14,
     attack: 2,
     armor: 1,
-    intent: "curse",
+    intent: "curse", // legacy fallback
+    intentWeights: { attack: 3, curse: 2 },
     effect:
       "On attack: applies Bleed to the player (1 self-damage per turn for 2 turns).",
   },
