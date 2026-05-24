@@ -127,6 +127,6 @@ Systems implemented:
 17. ✅ Add `startRun()` to initialize player, run state, and triggeredMilestones.
 18. ✅ Define starting decks per archetype and seed `run.collection` in `startRun()`.
 19. ✅ Grant Marrow on combat win in `checkEncounterEnd()` and call `offerPackRewards()`.
-20. Add one Ritual and one Sacrifice support card to `data/cards.js`.
+20. ✅ Add one Ritual and one Sacrifice support card to `data/cards.js`.
 21. Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
 22. Add one Elite and one Boss enemy per archetype with stats and simple abilities.
