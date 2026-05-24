@@ -302,7 +302,9 @@ function checkEncounterEnd() {
   const allDead = encounter.enemies.every((e) => e.hp <= 0);
   if (allDead) {
     encounter.active = false;
+
     console.log("--- Encounter won. ---");
+
     // Trigger pack reward selection
     // Marrow reward based on enemies
     const marrowReward = calculateMarrowReward(encounter.enemies);
@@ -384,12 +386,12 @@ function startRun(startingArchetype) {
   run.artifacts = [];
   run.discoveredHints = [];
 
-  // TODO (Task 18): seed starting deck into run.collection based on startingArchetype
   const deckIds = STARTING_DECKS[startingArchetype];
   if (!deckIds) {
     console.log(
       `Unknown starting archetype: ${startingArchetype}. No starting deck seeded.`,
     );
+    run.archetype = null;
   } else {
     deckIds.forEach((id) => {
       const card = getCardById(id);
@@ -402,9 +404,8 @@ function startRun(startingArchetype) {
     console.log(
       `Starting deck seeded for ${startingArchetype}: ${run.collection.length} cards.`,
     );
+    run.archetype = startingArchetype;
   }
-
-  run.archetype = startingArchetype;
 
   console.log(
     `Run started with archetype: ${startingArchetype}. HP: ${player.hp}, Pain: ${player.pain}, Blood: ${player.blood}, Marrow: ${player.marrow}`,
@@ -1024,8 +1025,32 @@ function resolveMystery(node) {
 
 // -- Node Resolution End --
 
-startRun("blood-flesh");
-buildDeck();
-dealOpeningHand();
+function startMatchForArchetype(archetypeName) {
+  const key = String(archetypeName || "").toLowerCase();
 
+  if (key === "blood" || key === "blood-flesh") {
+    console.log("Starting Blood/Flesh run...");
+    startRun("blood-flesh");
+  } else if (key === "bone" || key === "undead-bone" || key === "undead") {
+    console.log("Starting Undead/Bone run...");
+    startRun("undead-bone");
+  } else {
+    console.log(`Unknown archetype '${archetypeName}'. Use "blood" or "bone".`);
+    return;
+  }
+
+  buildDeck();
+  dealOpeningHand();
+}
+
+function startMatch() {
+  console.log(
+    'Choose archetype: "blood" or "bone". Then call startMatchForArchetype("<choice>").',
+  );
+}
+
+/*
+
+--> insert start sequence here...
+*/
 console.log(game);

@@ -82,6 +82,10 @@ Systems implemented:
 - `ub_champion_01` (Bonecage Titan): "absorbs overflow damage" changes the blocker resolution logic in `enemyAttack()`. When this effect is implemented, it will need to mark specific summons as overflow-blocking and adjust the damage routing there.
 - `ub_apex_01` (The Hollow King): resurrection from discard requires reading player.discard — will need a target-selection step (auto or player-choice) when effect resolution is built.
 - `apexLocked: true` is the only card-level flag that gates playability right now. If more unlock conditions are added later, consider a more general `requiresFlag` field on cards rather than adding more one-off booleans.
+- `startRun()` currently only resets state; it does not call `buildDeck()` or seed a starting deck. Task 18 will wire starting deck seeding into `run.collection` and then build the deck.
+- `run.archetype` is now set in `startRun()` and used when offering pack rewards. If multi-archetype runs are added later, pack selection will need a more flexible source for the archetype parameter.
+- `startMatchForArchetype()` wraps `startRun()` + `buildDeck()` + `dealOpeningHand()` and accepts loose strings like "blood" or "bone" to avoid typo-prone archetype IDs during manual testing.
+- `startMatch()` + `startMatchForArchetype()` provide a one-call dev flow to start a new run and first match (run init, deck build, opening hand) for either "blood" or "bone".
 
 ---
 
@@ -94,6 +98,9 @@ Systems implemented:
 - Additional archetypes: Demonic/Infernal, Void/Eldritch, Bound/Shackled
 - Grunt/Soldier random targeting: low-tier enemies select attack targets randomly (player field or player directly) rather than always hitting the highest defense blocker. Trigger condition: enemy attack exceeds the defense of at least one field summon, or enemy has a direct damage effect. Adds chaos and risk to horde encounters.
 - Secret archetype unlock: additional archetypes (Demonic/Infernal, Void/Eldritch, Bound/Shackled) are locked behind a secret objective spanning multiple runs. Hints are scattered across hidden secret nodes throughout Act 1. The player must discover all hints across separate runs before the unlock condition is met. Design specifics TBD when second archetype is scoped.
+- Starting decks are fixed 10-card lists per archetype with no randomness yet. Future work: add small random swaps or weighted picks while preserving core archetype identity.
+- Combat Marrow rewards use a simple per-enemy formula (Grunt = 1, Soldier = 2) with a minimum of 1. Elite/Boss values and node-type scaling are still TBD.
+- `offerPackRewards()` is currently always called with a hardcoded archetype string. When the run archetype is tracked on `run`, this should pass `run.archetype` instead.
 
 ---
 
@@ -115,9 +122,9 @@ Systems implemented:
 14. ✅ Ritual, Rest, Curse, Mystery node resolution
 15. ✅ Gatekeeper artifact check
 16. ✅ Champion + Apex tier cards for both archetypes
-17. Add `startRun()` to initialize player, run state, and triggeredMilestones.
-18. Define starting decks per archetype and seed `run.collection` in `startRun()`.
-19. Grant Marrow on combat win in `checkEncounterEnd()` and call `offerPackRewards()`.
+17. ✅ Add `startRun()` to initialize player, run state, and triggeredMilestones.
+18. ✅ Define starting decks per archetype and seed `run.collection` in `startRun()`.
+19. ✅ Grant Marrow on combat win in `checkEncounterEnd()` and call `offerPackRewards()`.
 20. Add one Ritual and one Sacrifice support card to `data/cards.js`.
 21. Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
 22. Add one Elite and one Boss enemy per archetype with stats and simple abilities.
