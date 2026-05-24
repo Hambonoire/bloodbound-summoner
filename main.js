@@ -338,10 +338,42 @@ function resetMatch() {
   console.log("Match reset. HP carries over:", player.hp);
 }
 
+function startRun(startingArchetype) {
+  // Reset player core stats
+  player.hp = 30;
+  player.maxHp = 30;
+  player.blood = 0;
+  player.marrow = 0;
+  player.pain = 0;
+  player.painZone = "cold";
+  player.apexUnlocked = false;
+  player.summonAttackBonus = 0;
+  player.field = [];
+  player.hand = [];
+  player.deck = [];
+  player.discard = [];
+
+  // Reset pain milestones
+  triggeredMilestones.clear();
+
+  // Reset run-scoped state
+  run.collection = [];
+  run.curses = [];
+  run.artifacts = [];
+  run.discoveredHints = [];
+
+  // TODO (Task 18): seed starting deck into run.collection based on startingArchetype
+
+  console.log(
+    `Run started with archetype: ${startingArchetype}. HP: ${player.hp}, Pain: ${player.pain}, Blood: ${player.blood}, Marrow: ${player.marrow}`,
+  );
+}
+
 const run = {
-  collection: [], // all cards the player has acquired this run
+  collection: [],
   curses: [],
   artifacts: [],
+  discoveries: [],
 };
 
 function generatePack(type, archetype = null) {
