@@ -71,6 +71,19 @@ const cards = [
     effect: "While Pain meter is in Threshold: +2 attack.",
   },
 
+  // --- BLOOD/FLESH — RITUAL SUPPORT ---
+
+  {
+    id: "bf_ritual_01",
+    name: "Bloodletting Rite",
+    archetype: "blood-flesh",
+    tier: "minion",
+    type: "ritual",
+    cost: { hp: 3, blood: 0 },
+    effect:
+      "Lose 3 HP. Gain 5 Blood. This counts as self-inflicted damage and can trigger Pain milestones.",
+  },
+
   // --- UNDEAD/BONE — MINION ---
 
   {
@@ -142,6 +155,19 @@ const cards = [
     attack: 3,
     defense: 4,
     effect: "On attack: if a friendly summon died this turn, +3 attack.",
+  },
+
+  // --- UNDEAD/BONE — SACRIFICE SUPPORT ---
+
+  {
+    id: "ub_sacrifice_01",
+    name: "Bone Harvest",
+    archetype: "undead-bone",
+    tier: "minion",
+    type: "sacrifice",
+    cost: { sacrifice: 1, marrow: 0 },
+    effect:
+      "Sacrifice one of your summons. Gain 2 Marrow and summon one Bone Shard from your deck or discard.",
   },
 
   // --- Champion Tier ---
