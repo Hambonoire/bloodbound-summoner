@@ -220,6 +220,31 @@ function enemyTurn() {
   checkEncounterEnd();
 }
 
+function chooseNextIntent(enemy) {
+  // If the enemy has an explicit intent list, cycle through it.
+  if (Array.isArray(enemy.intents) && enemy.intents.length > 0) {
+    const index = enemy.intentIndex || 0;
+    const intent = enemy.intents[index];
+    enemy.intentIndex = (index + 1) % enemy.intents.length;
+    return intent;
+  }
+
+  // If there are weights, use weighted random over the intentWeights map.
+  if (enemy.intentWeights) {
+    const entries = Object.entries(enemy.intentWeights);
+    const total = entries.reduce((sum, [, w]) => sum + w, 0);
+    const roll = Math.random() * total;
+    let acc = 0;
+    for (const [intent, weight] of entries) {
+      acc += weight;
+      if (roll <= acc) return intent;
+    }
+  }
+
+  // Fallback: use enemy.intent if present, else default to "attack".
+  return enemy.intent || "attack";
+}
+
 function executeEnemyIntent(enemy) {
   const intent = chooseNextIntent(enemy);
 
