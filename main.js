@@ -340,6 +340,9 @@ function resetMatch() {
 
 const run = {
   collection: [], // all cards the player has acquired this run
+  curses: [],
+  artifacts: [],
+  discoveredHints: [],
 };
 
 function generatePack(type, archetype = null) {
@@ -684,5 +687,208 @@ function refreshShop() {
 }
 
 // -- Shop End --
+
+// --- Node Resolution ---
+
+function resolveNode(nodeId) {
+  const node = getNode(nodeId);
+  if (!node) {
+    console.log("Node not found.");
+    return;
+  }
+  if (node.locked) {
+    console.log(`${node.title} is locked.`);
+    return;
+  }
+  if (node.completed) {
+    console.log(`${node.title} already completed.`);
+    return;
+  }
+
+  switch (node.type) {
+    case "ritual":
+      resolveRitual(node);
+      break;
+    case "rest":
+      resolveRest(node);
+      break;
+    case "curse":
+      resolveCurse(node);
+      break;
+    case "mystery":
+      resolveMystery(node);
+      break;
+    case "gatekeeper":
+      resolveGatekeeper(node);
+      break;
+    default:
+      console.log(`No resolver for node type: ${node.type}`);
+  }
+}
+
+function resolveGatekeeper(node) {
+  if (!node.requiredArtifacts || node.requiredArtifacts.length === 0) {
+    console.log(`${node.title}: No artifact requirement. Passing through.`);
+    completeNode(node.id);
+    return;
+  }
+
+  const missing = node.requiredArtifacts.filter(
+    (id) => !run.artifacts.includes(id),
+  );
+
+  if (missing.length > 0) {
+    console.log(
+      `${node.title}: BLOCKED — missing artifact(s): ${missing.join(", ")}`,
+    );
+    return;
+  }
+
+  console.log(`${node.title}: Artifacts verified. Gate opens.`);
+  completeNode(node.id);
+}
+
+function resolveRitual(node) {
+  // Player pays HP for a card reward or Marrow. Two fixed options per the design doc.
+  const hpCost = 5;
+  if (player.hp - hpCost <= 0) {
+    console.log(`${node.title}: Cannot pay ritual cost — would be lethal.`);
+    return;
+  }
+
+  dealSelfDamage(hpCost);
+
+  // Reward: add a random card from the pool to run.collection
+  const pool = cards.filter((c) => c.tier === "minion" || c.tier === "warrior");
+  const reward = drawRandom(pool, 1)[0];
+  if (reward) {
+    run.collection.push(reward);
+    console.log(`${node.title}: Ritual complete. Received: ${reward.name}`);
+  }
+
+  completeNode(node.id);
+}
+
+function resolveRest(node) {
+  // Healing restores HP but drains the Pain meter (per game-design.md).
+  const healAmount = 8;
+  const painDrain = 5;
+
+  const prevHp = player.hp;
+  player.hp = Math.min(player.hp + healAmount, player.maxHp);
+  const healed = player.hp - prevHp;
+
+  const prevPain = player.pain;
+  player.pain = Math.max(player.pain - painDrain, 0);
+  const drained = prevPain - player.pain;
+
+  updatePainZone();
+
+  console.log(
+    `${node.title}: Rested. HP restored: +${healed} (${player.hp}/${player.maxHp}) | Pain drained: -${drained} (${player.pain})`,
+  );
+
+  completeNode(node.id);
+}
+
+function resolveCurse(node) {
+  // Player accepts a curse; receives a card reward in return.
+  // Curses are strings for now — effect resolution is a future task.
+  const cursePool = [
+    {
+      id: "curse_bleeding",
+      label: "Bleeding — lose 1 HP at the start of each turn.",
+    },
+    { id: "curse_slow", label: "Slow — draw 1 fewer card each turn." },
+    { id: "curse_brittle", label: "Brittle — your summons have -1 defense." },
+  ];
+
+  const curse = drawRandom(cursePool, 1)[0];
+  run.curses = run.curses || [];
+  run.curses.push(curse);
+  console.log(`${node.title}: Curse accepted — ${curse.label}`);
+
+  // Card reward: weighted toward champion tier if it exists in pool
+  const rewardPool = cards.filter(
+    (c) => c.tier === "warrior" || c.tier === "champion",
+  );
+  const fallback = cards.filter((c) => c.tier === "warrior");
+  const pool = rewardPool.length ? rewardPool : fallback;
+  const reward = drawRandom(pool, 1)[0];
+
+  if (reward) {
+    run.collection.push(reward);
+    console.log(`${node.title}: Received in exchange — ${reward.name}`);
+  }
+
+  completeNode(node.id);
+}
+
+function resolveMystery(node) {
+  // High variance — one of four outcomes, weighted.
+  const roll = Math.random();
+  let outcome;
+
+  if (roll < 0.3) {
+    outcome = "marrow";
+  } else if (roll < 0.55) {
+    outcome = "card";
+  } else if (roll < 0.75) {
+    outcome = "damage";
+  } else {
+    outcome = "curse";
+  }
+
+  console.log(`${node.title}: Mystery resolves...`);
+
+  switch (outcome) {
+    case "marrow": {
+      const amount = rollMarrow(4, 10);
+      earnMarrow(amount);
+      console.log(`${node.title}: Found forgotten Marrow. (+${amount})`);
+      break;
+    }
+    case "card": {
+      const pool = cards.filter(
+        (c) => c.tier === "minion" || c.tier === "warrior",
+      );
+      const reward = drawRandom(pool, 1)[0];
+      if (reward) {
+        run.collection.push(reward);
+        console.log(`${node.title}: A card materializes — ${reward.name}`);
+      }
+      break;
+    }
+    case "damage": {
+      const amount = rollMarrow(3, 8); // reuse helper for int in range
+      dealSelfDamage(amount);
+      console.log(`${node.title}: Something unseen cuts you. (-${amount} HP)`);
+      break;
+    }
+    case "curse": {
+      // Reuse resolveCurse's pool — no card reward, just the curse
+      const cursePool = [
+        {
+          id: "curse_bleeding",
+          label: "Bleeding — lose 1 HP at the start of each turn.",
+        },
+        { id: "curse_slow", label: "Slow — draw 1 fewer card each turn." },
+        {
+          id: "curse_brittle",
+          label: "Brittle — your summons have -1 defense.",
+        },
+      ];
+      const curse = drawRandom(cursePool, 1)[0];
+      run.curses = run.curses || [];
+      run.curses.push(curse);
+      console.log(`${node.title}: You are marked. — ${curse.label}`);
+      break;
+    }
+  }
+
+  completeNode(node.id);
+}
+
+// -- Node Resolution End --
 
 console.log(game);
