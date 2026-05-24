@@ -303,8 +303,22 @@ function checkEncounterEnd() {
   if (allDead) {
     encounter.active = false;
     console.log("--- Encounter won. ---");
-    // TODO: trigger pack reward selection
+    // Trigger pack reward selection
+    // Marrow reward based on enemies
+    const marrowReward = calculateMarrowReward(encounter.enemies);
+    earnMarrow(marrowReward);
+    console.log(`Combat reward: +${marrowReward} Marrow.`);
+
+    // Pack rewards (for now, pass a simple archetype tag; adjust later)
+    const packOptions = offerPackRewards("blood-flesh");
+
+    console.log(
+      "--- Choose a pack by index with selectPack(packOptions, index) ---",
+    );
+
+    return;
   }
+
   if (player.hp <= 0) {
     encounter.active = false;
   }
@@ -507,6 +521,31 @@ function drawRandom(pool, count) {
 
 function getCardById(id) {
   return cards.find((c) => c.id === id) || null;
+}
+
+function calculateMarrowReward(enemies) {
+  let total = 0;
+
+  for (const enemy of enemies) {
+    if (!enemy.tier) {
+      continue;
+    }
+    switch (enemy.tier) {
+      case "grunt":
+        total += 1;
+        break;
+      case "soldier":
+        total += 2;
+        break;
+      default:
+        // Future: add elite/boss tiers here
+        total += 2;
+        break;
+    }
+  }
+
+  // Ensure at least 1 Marrow per win
+  return Math.max(total, 1);
 }
 
 function rollMarrow(min, max) {
