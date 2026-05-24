@@ -341,6 +341,7 @@ function resetMatch() {
 const run = {
   collection: [], // all cards the player has acquired this run
   curses: [],
+  artifacts: [],
 };
 
 function generatePack(type, archetype = null) {
@@ -726,26 +727,14 @@ function resolveNode(nodeId) {
 
 function resolveGatekeeper(node) {
   const requiredArtifacts = node.requiredArtifacts || [];
-  const missingArtifacts = requiredArtifacts.filter(
-    (artifactId) => !run.artifacts.includes(artifactId),
-  );
 
-  if (missingArtifacts.length > 0) {
-    console.log(
-      `${node.title}: BLOCKED - missing artifact(s): ${missingArtifacts.join(",")}`,
-    );
-    return false;
-  }
-
-  if (!node.requiredArtifacts || node.requiredArtifacts.length === 0) {
+  if (requiredArtifacts.length === 0) {
     console.log(`${node.title}: No artifact requirement. Passing through.`);
     completeNode(node.id);
     return;
   }
 
-  const missing = node.requiredArtifacts.filter(
-    (id) => !run.artifacts.includes(id),
-  );
+  const missing = requiredArtifacts.filter((id) => !run.artifacts.includes(id));
 
   if (missing.length > 0) {
     console.log(
