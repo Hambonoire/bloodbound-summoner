@@ -310,7 +310,8 @@ function checkEncounterEnd() {
     console.log(`Combat reward: +${marrowReward} Marrow.`);
 
     // Pack rewards (for now, pass a simple archetype tag; adjust later)
-    const packOptions = offerPackRewards("blood-flesh");
+    const packArchetype = run.archetype || "blood-flesh";
+    const packOptions = offerPackRewards(packArchetype);
 
     console.log(
       "--- Choose a pack by index with selectPack(packOptions, index) ---",
@@ -353,6 +354,13 @@ function resetMatch() {
 }
 
 function startRun(startingArchetype) {
+  const run = {
+    collection: [], // all cards the player has acquired this run
+    curses: [],
+    artifacts: [],
+    discoveredHints: [],
+    archetype: null, // "blood-flesh" | "undead-bone"
+  };
   // Reset player core stats
   player.hp = 30;
   player.maxHp = 30;
@@ -395,6 +403,8 @@ function startRun(startingArchetype) {
       `Starting deck seeded for ${startingArchetype}: ${run.collection.length} cards.`,
     );
   }
+
+  run.archetype = startingArchetype;
 
   console.log(
     `Run started with archetype: ${startingArchetype}. HP: ${player.hp}, Pain: ${player.pain}, Blood: ${player.blood}, Marrow: ${player.marrow}`,
