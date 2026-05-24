@@ -70,6 +70,13 @@ Systems implemented:
 - Each forced discard drains 2 Blood and currently floors at 0.
 - `drawCard()` reshuffles `player.discard` into `player.deck` when the deck is empty and discard has cards.
 - Battlefield summon cap added. Summon cards cannot be played if the field is already at cap.
+- `resolveRitual()`: HP cost (5) and card reward pool are hardcoded. When per-node data fields are added, ritual cost and reward tier should be driven by node data, not the function.
+- `resolveRest()`: Heal amount (8) and Pain drain (5) are hardcoded. These may need tuning during playtesting; flag as balance constants.
+- `resolveCurse()` / `resolveMystery()`: The curse pool is duplicated inline in both functions. When the curse system is formalized (effect resolution), extract to a `data/curses.js` data file and reference it from both resolvers.
+- `resolveMystery()`: Uses `rollMarrow()` to generate the self-damage amount — this is intentional and saves a helper, but note it for clarity.
+- `run.curses` is initialized lazily (`run.curses = run.curses || []`). When `run` is formalized with a start-of-run setup function, seed it there instead.
+- `resolveGatekeeper()`: `run.artifacts` is now tracked, but no artifact reward source exists yet. Gatekeeper nodes that require artifacts will remain blocked until artifact-granting node rewards or boss/secret rewards are implemented.
+- `run.artifacts` currently stores artifact IDs only. If artifact passives or metadata are needed later, move artifact definitions into a dedicated data file and store richer objects or resolve IDs through that data.
 
 ---
 
@@ -100,6 +107,6 @@ Systems implemented:
 11. ✅ Add Marrow tracking
 12. ✅ Draw system: shuffle run.collection into player.deck, deal opening hand.
 13. ✅ Shop node logic: browse and purchase cards using Marrow
-14. Ritual, Rest, Curse, Mystery node resolution
-15. Gatekeeper artifact check
+14. ✅ Ritual, Rest, Curse, Mystery node resolution
+15. ✅ Gatekeeper artifact check
 16. Champion + Apex tier cards for both archetypes
