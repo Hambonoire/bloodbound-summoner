@@ -101,6 +101,8 @@ Systems implemented:
 - Starting decks are fixed 10-card lists per archetype with no randomness yet. Future work: add small random swaps or weighted picks while preserving core archetype identity.
 - Combat Marrow rewards use a simple per-enemy formula (Grunt = 1, Soldier = 2) with a minimum of 1. Elite/Boss values and node-type scaling are still TBD.
 - `offerPackRewards()` is currently always called with a hardcoded archetype string. When the run archetype is tracked on `run`, this should pass `run.archetype` instead.
+- `bf_ritual_01` (Bloodletting Rite): effect text assumes self-damage from the HP cost will correctly fill Blood and trigger Pain milestones; currently logged only, pending effect system hookup.
+- `ub_sacrifice_01` (Bone Harvest): effect text references summoning Bone Shard from deck or discard by ID (`ub_minion_01`). Implementation is pending the general support/effect resolution system.
 
 ---
 
