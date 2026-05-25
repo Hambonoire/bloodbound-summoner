@@ -50,18 +50,18 @@ Systems implemented:
 
 ## Known Issues / Dev Notes
 
-- `ub_minion_03` (Grave Crawler): on-death effect references Bone Shard by name. Must resolve to `ub_minion_01` by ID when effect logic is implemented.
+- `ub_minion_03` (Grave Crawler): on-death effect references Bone Shard by name. Must resolve to `ub_minion_01` by ID when on-death effect logic is implemented (see task 24).
 - `payCost()`: sacrifice currently targets the last summon(s) on the field. Player choice of sacrifice target is a TODO for when UI is added.
 - `applyEffect()`: effects are string-logged only. Full effect resolution system is a future task.
 - `canAfford()`: blocks play if HP cost would reduce player to 0 or below. Death-on-cost edge case may need revisiting depending on desired lethality.
 - `triggeredMilestones` is a module-level Set — must be reset on match start when match reset logic is implemented (task ties into Pain meter reset rule).
 - `gainBlood()` reads `player.painZone` before `updatePainZone()` sets it. Blood gain on the damage that crosses the threshold fires at the old rate. Intentional for now — revisit if it feels wrong during testing.
-- Enemy `intent` is a static string for now. Dynamic intent selection (cycling, conditional, weighted random) is a TODO for the combat loop.
+- Enemy intent selection now supports simple cycles and weighted random via `intents` and `intentWeights` fields on enemies. Conditional intent logic (state-based behaviors) is a future enhancement.
 - `enemyAttack()`: blocker is selected by highest defense automatically. Player choice of which summon defends is a TODO for when UI is added.
 - `attackEnemy()` is called manually for now — no targeting system yet. Player picks which enemy to attack by passing enemyId directly.
-- `resetMatch()`: deck is not reshuffled here — no draw system exists yet. When draw/deck logic is implemented, resetMatch() will need to rebuild player.deck from the run's full card pool and shuffle it.
-- `offerPackRewards()`: currently offers 2 archetype packs of the same archetype. When multiple archetypes are in the run pool, this should offer one pack per available archetype. TODO when second archetype is added.
-- `run.collection` holds all acquired cards but doesn't yet feed into player.deck. Will need a shuffle + deal step when draw system is built.
+- `resetMatch()`: currently rebuilds the deck via `buildDeck()` and `dealOpeningHand()`, but still needs to ensure the deck is always rebuilt from the full run card pool (see task 25).
+- `offerPackRewards()` is currently always called with a hardcoded archetype string. When multiple archetypes are in the run pool, this should offer one pack per available archetype. TODO when second archetype is added.
+- `run.collection` holds all acquired cards. Deck building and match reset must consistently rebuild `player.deck` from this collection; task 25 tracks wiring this fully into `buildDeck()` and `resetMatch()`.
 - Act 1 map is hardcoded for now. Procedural or semi-random map generation is a future consideration once the node structure is proven.
 - `run.discoveredHints` tracks hints per run. Cross-run hint persistence will need a save/storage system — pinned for when save state is scoped.
 - `buildDeck()` requires run.collection to be populated before it's called. Calling resetMatch() on a fresh run with an empty collection will deal an empty hand. Starting deck composition (task list open question) needs to be resolved and seeded into run.collection before the first match.
@@ -77,7 +77,7 @@ Systems implemented:
 - `run.curses` is initialized lazily (`run.curses = run.curses || []`). When `run` is formalized with a start-of-run setup function, seed it there instead.
 - `resolveGatekeeper()`: `run.artifacts` is now tracked, but no artifact reward source exists yet. Gatekeeper nodes that require artifacts will remain blocked until artifact-granting node rewards or boss/secret rewards are implemented.
 - `run.artifacts` currently stores artifact IDs only. If artifact passives or metadata are needed later, move artifact definitions into a dedicated data file and store richer objects or resolve IDs through that data.
-- Champion/Apex cards: `effect` strings are logged only — actual effect resolution (overflow absorption, resurrection, attack debuff) is pending the full effect system. Each will need a dedicated handler when that system is built.
+- Champion/Apex cards: `effect` strings are logged only — actual effect resolution (overflow absorption, resurrection, attack debuff) is pending the full effect system. Each will need a dedicated handler when that system is built, likely alongside curses (task 26) and enemy on-death effects (task 24).
 - `bf_champion_01` (Fleshbinder): "heal 2 HP per summon on field" effect references player.field.length at summon time. When effect resolution is implemented, evaluate whether this fires before or after the summon itself is pushed to the field.
 - `ub_champion_01` (Bonecage Titan): "absorbs overflow damage" changes the blocker resolution logic in `enemyAttack()`. When this effect is implemented, it will need to mark specific summons as overflow-blocking and adjust the damage routing there.
 - `ub_apex_01` (The Hollow King): resurrection from discard requires reading player.discard — will need a target-selection step (auto or player-choice) when effect resolution is built.
@@ -86,6 +86,8 @@ Systems implemented:
 - `run.archetype` is now set in `startRun()` and used when offering pack rewards. If multi-archetype runs are added later, pack selection will need a more flexible source for the archetype parameter.
 - `startMatchForArchetype()` wraps `startRun()` + `buildDeck()` + `dealOpeningHand()` and accepts loose strings like "blood" or "bone" to avoid typo-prone archetype IDs during manual testing.
 - `startMatch()` + `startMatchForArchetype()` provide a one-call dev flow to start a new run and first match (run init, deck build, opening hand) for either "blood" or "bone".
+- `bf_ritual_01` (Bloodletting Rite): effect text assumes self-damage from the HP cost will correctly fill Blood and trigger Pain milestones; currently logged only, pending effect system hookup.
+- `ub_sacrifice_01` (Bone Harvest): effect text references summoning Bone Shard from deck or discard by ID (`ub_minion_01`). Implementation is pending the general support/effect resolution system.
 
 ---
 
@@ -128,5 +130,10 @@ Systems implemented:
 18. ✅ Define starting decks per archetype and seed `run.collection` in `startRun()`.
 19. ✅ Grant Marrow on combat win in `checkEncounterEnd()` and call `offerPackRewards()`.
 20. ✅ Add one Ritual and one Sacrifice support card to `data/cards.js`.
-21. Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
-22. Add one Elite and one Boss enemy per archetype with stats and simple abilities.
+21. ✅ Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
+22. ✅ Add one Elite and one Boss enemy per archetype with stats and simple abilities.
+23. Add boss node encounters using new boss IDs.
+24. Implement on-death enemy effects.
+25. Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
+26. Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.
+27. Add one Relic and one Drain support card to data/cards.js as data-only entries (effect text only, no logic yet).
