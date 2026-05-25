@@ -79,4 +79,71 @@ const enemies = [
     intent: "attack",
     effect: "Rage: gains +1 attack each time it takes damage.",
   },
+  // --- ELITES ---
+
+  {
+    id: "elite_01",
+    name: "Gore Herald",
+    tier: "elite",
+    archetype: "bloodhunter",
+    hp: 28,
+    maxHp: 28,
+    attack: 5,
+    armor: 2,
+    intent: "attack",
+    // Mostly attacks, sometimes blocks to stay alive
+    intentWeights: { attack: 4, block: 1 },
+    effect:
+      "Deals +1 damage for every 5 HP the player is missing. When it kills a summon, gain +1 attack this encounter.",
+  },
+
+  {
+    id: "elite_02",
+    name: "Bonecaller Adept",
+    tier: "elite",
+    archetype: "undead",
+    hp: 26,
+    maxHp: 26,
+    attack: 4,
+    armor: 3,
+    intent: "curse",
+    // Cycles: curse → attack → block → attack
+    intents: ["curse", "attack", "block", "attack"],
+    effect:
+      "Can sacrifice a Grunt in this encounter to heal 5 HP and gain +2 armor. On attack: if a friendly Grunt died this turn, deal +2 damage.",
+  },
+
+  // --- BOSSES ---
+
+  {
+    id: "boss_01",
+    name: "Bloodbound Butcher",
+    tier: "boss",
+    archetype: "bloodhunter",
+    hp: 60,
+    maxHp: 60,
+    attack: 7,
+    armor: 3,
+    intent: "attack",
+    // Pattern: self-wound buff, attack, attack, block, repeat
+    intents: ["curse", "attack", "attack", "block"],
+    effect:
+      "At the start of its turn, may deal 3 damage to itself to gain +2 attack this encounter. Deals +1 damage for every 5 HP the player is missing.",
+  },
+
+  {
+    id: "boss_02",
+    name: "Grave Tyrant",
+    tier: "boss",
+    archetype: "undead",
+    hp: 65,
+    maxHp: 65,
+    attack: 6,
+    armor: 4,
+    intent: "attack",
+    // Weighted: mostly attack, sometimes block, rare heal
+    intentWeights: { attack: 5, block: 2, heal: 1 },
+    effect:
+      "Whenever it kills a summon, summons a Shambling Corpse to the encounter. At 50% and 25% HP thresholds, heals 6 HP and gains +2 armor.",
+  },
 ];
