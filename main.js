@@ -248,6 +248,8 @@ function chooseNextIntent(enemy) {
 function executeEnemyIntent(enemy) {
   const intent = chooseNextIntent(enemy);
 
+  console.log(`${enemy.name} prepares to ${intent}.`);
+
   switch (intent) {
     case "attack":
       enemyAttack(enemy);
