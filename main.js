@@ -29,6 +29,10 @@ const player = {
   hand: [], // cards in hand
   deck: [], // remaining draw pile
   discard: [], // discarded cards
+  statuses: {
+    bleedStacks: 0,
+    bleedTurnsRemaining: 0,
+  },
 };
 
 console.log("Bloodbound Summoner initialized.");
@@ -216,6 +220,26 @@ function getEnemyById(id) {
 function playerTurn(card) {
   if (!encounter.active) return;
   console.log(`-- Player Turn ${encounter.turn + 1} --`);
+
+  // Bleed tick at the start of the player's turn
+  if (
+    player.statuses &&
+    player.statuses.bleedStacks > 0 &&
+    player.statuses.bleedTurnsRemaining > 0
+  ) {
+    console.log(
+      `Bleed ticks for ${player.statuses.bleedStacks} damage (${player.statuses.bleedTurnsRemaining} turn(s) remaining).`,
+    );
+    dealSelfDamage(player.statuses.bleedStacks);
+
+    player.statuses.bleedTurnsRemaining -= 1;
+    if (player.statuses.bleedTurnsRemaining <= 0) {
+      console.log("Bleed has faded.");
+      player.statuses.bleedStacks = 0;
+      player.statuses.bleedTurnsRemaining = 0;
+    }
+  }
+
   playCard(card);
   endPlayerTurn();
 }
@@ -265,6 +289,13 @@ function executeEnemyIntent(enemy) {
   switch (intent) {
     case "attack":
       enemyAttack(enemy);
+      // Cursebrand Warrior: apply Bleed on attack
+      if (
+        enemy.effect &&
+        enemy.effect.startsWith("On attack: applies Bleed to the player")
+      ) {
+        applyBleedToPlayer(1, 2);
+      }
       break;
     case "block":
       enemy.armor += 2;
@@ -379,7 +410,22 @@ function attackEnemy(enemyId, attackerCard) {
   }
 }
 
-// main.js
+function applyBleedToPlayer(stacks, duration) {
+  if (!player.statuses) {
+    player.statuses = { bleedStacks: 0, bleedTurnsRemaining: 0 };
+  }
+
+  // Add stacks; reset duration to at least the new duration
+  player.statuses.bleedStacks += stacks;
+  player.statuses.bleedTurnsRemaining = Math.max(
+    player.statuses.bleedTurnsRemaining,
+    duration,
+  );
+
+  console.log(
+    `Player afflicted with Bleed: ${player.statuses.bleedStacks} stack(s) for ${player.statuses.bleedTurnsRemaining} turn(s).`,
+  );
+}
 
 function handleEnemyDeath(deadEnemy) {
   if (!deadEnemy || damageDealt <= 0 || !deadEnemy.effect) return;

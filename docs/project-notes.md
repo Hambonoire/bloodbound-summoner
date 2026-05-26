@@ -121,10 +121,12 @@ Systems implemented:
 - Other enemy effects (e.g., rage, bleed application, Grave Tyrant summon) still logged as text only and will be wired into turn/attack hooks later.
 - Enemy damage triggers:
   - New handleEnemyDamaged(enemy, damageDealt) helper in main.js.
-  - attackEnemy() calls handleEnemyDamaged() after damage is applied and before
-    death is checked.
-  - Vein Sentinel (soldier_03) now implements its Rage text: each time it takes
-    damage, its attack increases by 1, logged in the console.
+  - attackEnemy() calls handleEnemyDamaged() after damage is applied and before death is checked.
+  - Vein Sentinel (soldier_03) now implements its Rage text: each time it takes damage, its attack increases by 1, logged in the console.
+- Enemy attack triggers:
+  - Player now tracks a simple Bleed status (bleedStacks, bleedTurnsRemaining).
+  - Bleed ticks at the start of the player's turn via playerTurn(), applying self-damage through dealSelfDamage() so Pain Blood interact as normal.
+  - Cursebrand Warrior (soldier_02) now applies Bleed (1 damage per turn for 2 turns) whenever it attacks, matching its effect text.
 
 ---
 
