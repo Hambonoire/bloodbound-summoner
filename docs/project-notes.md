@@ -105,6 +105,20 @@ Systems implemented:
 - `offerPackRewards()` is currently always called with a hardcoded archetype string. When the run archetype is tracked on `run`, this should pass `run.archetype` instead.
 - `bf_ritual_01` (Bloodletting Rite): effect text assumes self-damage from the HP cost will correctly fill Blood and trigger Pain milestones; currently logged only, pending effect system hookup.
 - `ub_sacrifice_01` (Bone Harvest): effect text references summoning Bone Shard from deck or discard by ID (`ub_minion_01`). Implementation is pending the general support/effect resolution system.
+- On any boss win, grant one extra pack option (e.g., call offerPackRewards twice and merge results, or add a boss-only “treasure pack” template), without introducing a full artifact/unique-card loot table yet.
+- Boss node support added:
+  - Act 1 `node_12` is now `type: "boss"` and uses `enemies: ["boss_01"]`.
+  - `resolveNode()` routes `"combat"` + `"boss"` nodes through `resolveCombatNode()`.
+  - `resolveCombatNode()` pulls enemy objects from `data/enemies.js` by ID and calls `startEncounter()`.
+- Boss encounters currently behave like harder combat nodes. No special boss-only rewards or loot tables yet; those are pinned for later.
+- Combat wins now call `completeNode(act1Map.currentNodeId)` in `checkEncounterEnd()`, marking the current map node as completed and unlocking its connections.
+- calculateMarrowReward() now differentiates Grunt/Soldier/Elite/Boss tiers. Bosses grant more base Marrow.
+- Boss encounters grant an additional flat +3 Marrow bonus on victory, logged as a boss bonus. No special card/artifact rewards yet; full boss loot tables remain an open design item.
+- Basic enemy on-death system added:
+  - New handleEnemyDeath(deadEnemy) helper in main.js.
+  - attackEnemy() now calls handleEnemyDeath() when an enemy HP drops to 0 or below.
+  - Current implementation supports Hollow Thrall (grunt_03): on death, heals the next alive enemy in the encounter for 2 HP using its effect string ("On death: heals the next enemy in the encounter for 2 HP.").
+- Other enemy effects (e.g., rage, bleed application, Grave Tyrant summon) still logged as text only and will be wired into turn/attack hooks later.
 
 ---
 
@@ -133,20 +147,6 @@ Systems implemented:
 21. ✅ Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
 22. ✅ Add one Elite and one Boss enemy per archetype with stats and simple abilities.
 23. Add boss node encounters using new boss IDs.
-<!-- docs/project-notes.md — Dev Notes for task 23 -->
-
-- Boss node support added:
-  - Act 1 `node_12` is now `type: "boss"` and uses `enemies: ["boss_01"]`.
-  - `resolveNode()` routes `"combat"` + `"boss"` nodes through `resolveCombatNode()`.
-  - `resolveCombatNode()` pulls enemy objects from `data/enemies.js` by ID and calls `startEncounter()`.
-- Boss encounters currently behave like harder combat nodes. No special boss-only rewards or loot tables yet; those are pinned for later.
-
-<!-- docs/project-notes.md — Dev Notes for boss rewards -->
-
-- Combat wins now call `completeNode(act1Map.currentNodeId)` in `checkEncounterEnd()`, marking the current map node as completed and unlocking its connections.
-- calculateMarrowReward() now differentiates Grunt/Soldier/Elite/Boss tiers. Bosses grant more base Marrow.
-- Boss encounters grant an additional flat +3 Marrow bonus on victory, logged as a boss bonus. No special card/artifact rewards yet; full boss loot tables remain an open design item.
-
 24. Implement on-death enemy effects.
 25. Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
 26. Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.

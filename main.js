@@ -375,6 +375,41 @@ function attackEnemy(enemyId, attackerCard) {
   }
 }
 
+// main.js
+
+function handleEnemyDeath(deadEnemy) {
+  if (!deadEnemy || !deadEnemy.effect) return;
+
+  const text = deadEnemy.effect;
+
+  // Hollow Thrall: "On death: heals the next enemy in the encounter for 2 HP."
+  if (text.startsWith("On death: heals the next enemy")) {
+    const index = encounter.enemies.findIndex((e) => e.id === deadEnemy.id);
+    if (index === -1) return;
+
+    // "Next enemy" = the next one in encounter.enemies that is still alive
+    for (let i = index + 1; i < encounter.enemies.length; i++) {
+      const target = encounter.enemies[i];
+      if (target.hp > 0) {
+        const prev = target.hp;
+        target.hp = Math.min(target.hp + 2, target.maxHp || target.hp + 2);
+        const healed = target.hp - prev;
+        if (healed > 0) {
+          console.log(
+            `${deadEnemy.name} death effect: ${target.name} heals ${healed} HP (now ${target.hp}).`,
+          );
+        }
+        return;
+      }
+    }
+
+    // If no later enemy is alive, no effect fires.
+    console.log(`${deadEnemy.name} death effect: no valid target to heal.`);
+  }
+
+  // Future: additional on-death patterns can be added here.
+}
+
 function checkEncounterEnd() {
   const allDead = encounter.enemies.every((e) => e.hp <= 0);
   if (allDead) {
