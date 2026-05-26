@@ -1,5 +1,8 @@
 console.log("Bloodbound Summoner prototype initialized.");
 
+const { act1Map } = require("./data/map");
+const { enemies } = require("./data/enemies");
+
 const game = {
   title: "Bloodbound Summoner",
   genre: "Roguelike card game",
@@ -199,6 +202,15 @@ function startEncounter(enemyList) {
       .map((e) => e.name)
       .join(", ")} ---`,
   );
+}
+
+function getEnemyById(id) {
+  const enemy = enemies.find((e) => e.id === id);
+  if (!enemy) {
+    console.log(`Unknown enemy ID: ${id}`);
+    return null;
+  }
+  return enemy;
 }
 
 function playerTurn(card) {
@@ -905,6 +917,12 @@ function resolveNode(nodeId) {
   }
 
   switch (node.type) {
+    case "combat":
+      resolveCombatNode(node, { isBoss: !!node.isBoss });
+      break;
+    case "boss":
+      resolveCombatNode(node, { isBoss: true });
+      break;
     case "ritual":
       resolveRitual(node);
       break;
@@ -923,6 +941,38 @@ function resolveNode(nodeId) {
     default:
       console.log(`No resolver for node type: ${node.type}`);
   }
+}
+
+function resolveCombatNode(node, { isBoss = false } = {}) {
+  if (!Array.isArray(node.enemies) || node.enemies.length === 0) {
+    console.log(`${node.title}: No enemies defined.`);
+    return;
+  }
+
+  const enemyList = node.enemies.map((id) => getEnemyById(id)).filter(Boolean);
+
+  if (enemyList.length === 0) {
+    console.log(`${node.title}: No valid enemies resolved from IDs.`);
+    return;
+  }
+
+  if (isBoss) {
+    console.log(
+      `*** Boss Encounter: ${node.title} — ${enemyList
+        .map((e) => e.name)
+        .join(", ")} ***`,
+    );
+  } else {
+    console.log(
+      `Encounter at ${node.title}: ${enemyList.map((e) => e.name).join(", ")}`,
+    );
+  }
+
+  startEncounter(enemyList);
+
+  // Mark node as completed handled by checkEncounterEnd() later, once win detected.
+  // For now, manually mark it if encounter end logic isn't wired yet:
+  // completeNode(node.id);
 }
 
 function resolveGatekeeper(node) {

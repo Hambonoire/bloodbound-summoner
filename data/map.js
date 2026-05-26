@@ -116,7 +116,7 @@ const act1Map = {
     },
     {
       id: "node_12",
-      type: "combat",
+      type: "boss",
       title: "The Hollow King's Court",
       enemies: ["boss_01"],
       completed: false,
@@ -126,4 +126,8 @@ const act1Map = {
       isBoss: true,
     },
   ],
+};
+
+module.exports = {
+  act1Map,
 };
