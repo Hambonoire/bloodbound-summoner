@@ -382,11 +382,27 @@ function checkEncounterEnd() {
 
     console.log("--- Encounter won. ---");
 
+    // Mark current map node completed and unlock connections
+    if (act1Map && act1Map.currentNodeId) {
+      completeNode(act1Map.currentNodeId);
+    }
+
     // Trigger pack reward selection
     // Marrow reward based on enemies
-    const marrowReward = calculateMarrowReward(encounter.enemies);
-    earnMarrow(marrowReward);
-    console.log(`Combat reward: +${marrowReward} Marrow.`);
+    const baseMarrow = calculateMarrowReward(encounter.enemies);
+
+    // Boss-only bonus: +3 Marrow if any boss was present
+    const foughtBoss = encounter.enemies.some((e) => e.tier === "boss");
+    const bossBonus = foughtBoss ? 3 : 0;
+
+    const totalMarrow = baseMarrow + bossBonus;
+    earnMarrow(totalMarrow);
+
+    console.log(
+      `Combat reward: +${baseMarrow} Marrow` +
+        (bossBonus ? ` (+${bossBonus} boss bonus)` : "") +
+        `. Total: ${totalMarrow}`,
+    );
 
     // Pack rewards (for now, pass a simple archetype tag; adjust later)
     const packArchetype = run.archetype || "blood-flesh";
@@ -625,8 +641,13 @@ function calculateMarrowReward(enemies) {
       case "soldier":
         total += 2;
         break;
+      case "elite":
+        total += 3;
+        break;
+      case "boss":
+        total += 5;
+        break;
       default:
-        // Future: add elite/boss tiers here
         total += 2;
         break;
     }

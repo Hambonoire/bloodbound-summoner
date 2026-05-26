@@ -133,6 +133,20 @@ Systems implemented:
 21. ✅ Add basic enemy intent cycling or weighted-random selection in `executeEnemyIntent()`.
 22. ✅ Add one Elite and one Boss enemy per archetype with stats and simple abilities.
 23. Add boss node encounters using new boss IDs.
+<!-- docs/project-notes.md — Dev Notes for task 23 -->
+
+- Boss node support added:
+  - Act 1 `node_12` is now `type: "boss"` and uses `enemies: ["boss_01"]`.
+  - `resolveNode()` routes `"combat"` + `"boss"` nodes through `resolveCombatNode()`.
+  - `resolveCombatNode()` pulls enemy objects from `data/enemies.js` by ID and calls `startEncounter()`.
+- Boss encounters currently behave like harder combat nodes. No special boss-only rewards or loot tables yet; those are pinned for later.
+
+<!-- docs/project-notes.md — Dev Notes for boss rewards -->
+
+- Combat wins now call `completeNode(act1Map.currentNodeId)` in `checkEncounterEnd()`, marking the current map node as completed and unlocking its connections.
+- calculateMarrowReward() now differentiates Grunt/Soldier/Elite/Boss tiers. Bosses grant more base Marrow.
+- Boss encounters grant an additional flat +3 Marrow bonus on victory, logged as a boss bonus. No special card/artifact rewards yet; full boss loot tables remain an open design item.
+
 24. Implement on-death enemy effects.
 25. Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
 26. Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.
