@@ -370,6 +370,9 @@ function attackEnemy(enemyId, attackerCard) {
     `${attackerCard.name} attacks ${enemy.name} for ${damage}. Enemy HP: ${enemy.hp}`,
   );
 
+  // Damage-triggered effects (e.g., Vein Sentinel rage)
+  handleEnemyDamaged(enemy, damage);
+
   if (enemy.hp <= 0) {
     console.log(`${enemy.name} defeated.`);
     handleEnemyDeath(enemy);
@@ -379,9 +382,17 @@ function attackEnemy(enemyId, attackerCard) {
 // main.js
 
 function handleEnemyDeath(deadEnemy) {
-  if (!deadEnemy || !deadEnemy.effect) return;
+  if (!deadEnemy || damageDealt <= 0 || !deadEnemy.effect) return;
 
   const text = deadEnemy.effect;
+
+  // Vein Sentinel: "Rage: gains +1 attack each time it takes damage."
+  if (text.startsWith("Rage: gains +1 attack each time it takes damage")) {
+    enemy.attack += 1;
+    console.log(
+      `${enemy.name} enrages and gains +1 attack (now ${enemy.attack}).`,
+    );
+  }
 
   // Hollow Thrall: "On death: heals the next enemy in the encounter for 2 HP."
   if (text.startsWith("On death: heals the next enemy")) {

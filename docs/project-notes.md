@@ -119,6 +119,12 @@ Systems implemented:
   - attackEnemy() now calls handleEnemyDeath() when an enemy HP drops to 0 or below.
   - Current implementation supports Hollow Thrall (grunt_03): on death, heals the next alive enemy in the encounter for 2 HP using its effect string ("On death: heals the next enemy in the encounter for 2 HP.").
 - Other enemy effects (e.g., rage, bleed application, Grave Tyrant summon) still logged as text only and will be wired into turn/attack hooks later.
+- Enemy damage triggers:
+  - New handleEnemyDamaged(enemy, damageDealt) helper in main.js.
+  - attackEnemy() calls handleEnemyDamaged() after damage is applied and before
+    death is checked.
+  - Vein Sentinel (soldier_03) now implements its Rage text: each time it takes
+    damage, its attack increases by 1, logged in the console.
 
 ---
 
