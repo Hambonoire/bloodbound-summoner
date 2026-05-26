@@ -372,6 +372,7 @@ function attackEnemy(enemyId, attackerCard) {
 
   if (enemy.hp <= 0) {
     console.log(`${enemy.name} defeated.`);
+    handleEnemyDeath(enemy);
   }
 }
 
