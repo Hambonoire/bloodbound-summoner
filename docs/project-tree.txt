@@ -1,0 +1,21 @@
+.
+├── .gitignore
+├── README.md
+├── data
+│   ├── cards.js
+│   ├── combat.js
+│   ├── economy.js
+│   ├── enemies.js
+│   ├── map.js
+│   ├── shopLogic.js
+│   └── status-effects.js
+├── docs
+│   ├── game-design.md
+│   ├── new-session-prompt.md
+│   ├── project-notes.md
+│   └── project-tree.txt
+├── economy.js
+├── main.js
+└── root-path.log
+
+3 directories, 16 files

@@ -59,6 +59,9 @@ Systems implemented:
 - ub_champion_01 (Bonecage Titan): "absorbs overflow damage" will need to flag specific summons as overflow-blocking and change damage routing in enemyAttack().
 - ub_apex_01 (The Hollow King): resurrection from discard will need a target-selection step (auto or player choice) that reads player.discard.
 - apexLocked: true is currently the only card-level playability gate; if more unlock conditions are added, consider a generic requiresFlag field instead of more booleans.
+- Support cards: one generic Relic and one Blood/Flesh Drain card have been added as data-only entries in `data/cards.js`.
+  - `generic_relic_01 (Bloodbound Sigil)`: Relic, generic archetype. Effect text: raises max Blood and grants bonus Blood when entering combat at high Pain. No passive logic wired yet.
+  - `bf_drain_01 (Sanguine Siphon)`: Drain support for Blood/Flesh. Effect text: drains HP from an enemy, heals the player, and generates Blood, with overflow damage flagged for future Pain interactions. Targeting and drain resolution are deferred to the effect system.
 
 # Costs, Pain, Blood, and effect system:
 
@@ -87,8 +90,7 @@ Systems implemented:
 - resetMatch() currently rebuilds the deck via buildDeck() and dealOpeningHand() but still needs to guarantee that the deck is rebuilt from the full run card pool, not a stale subset.
 - startRun() only resets state and does not call buildDeck() or seed a starting deck; task 18 will seed the archetype starting deck into run.collection and then build the deck.
 - startMatchForArchetype() wraps startRun() + buildDeck() + dealOpeningHand() and accepts loose strings ("blood", "bone") to avoid typo-prone IDs in manual testing; startMatch()/startMatchForArchetype() together provide a one-call dev flow to begin a new run and first match.
-- [x] Deck rebuilding: `resetMatch()` now clears field/hand/deck/discard and calls `buildDeck()` + `dealOpeningHand()` so the draw pile is always rebuilt from the full `run.collection` pool after `startRun()` seeds it.
-- [ ] Verify `buildDeck()` always uses `run.collection` (no stale references to earlier deck arrays) and update to a `createDeckSystem` factory when the deck subsystem is fully migrated.
+- Deck rebuilding: `resetMatch()` now clears field/hand/deck/discard and calls the deck system’s `buildDeck()` and `dealOpeningHand()`, so `player.deck` is always rebuilt from the current `run.collection` after `startRun()` seeds it.
 
 # Run structure, archetypes, and multi-archetype support:
 
@@ -105,11 +107,14 @@ Systems implemented:
 - resolveCurse() and resolveMystery() both duplicate an inline curse pool; when the curse system is formalized, extract a shared data/curses.js file referenced by both.
 - resolveMystery() uses rollMarrow() to generate self-damage; this is intentional and reuses the helper, but worth calling out for clarity.
 - resolveGatekeeper(): run.artifacts is now tracked, but no artifact reward source exists yet; Gatekeeper nodes that require artifacts will remain blocked until some node/boss/secret source can grant them.
+- Curse nodes now use a shared curse pool defined in `data/curses.js`. `resolveCurse()` draws one random curse via `drawRandomCurses(1)`, stores its `id` in `run.curses`, logs the full name/effect, and then grants a weighted card reward (favoring Warrior/Champion tiers).
+- Mystery nodes reuse the same shared pool for their curse outcome. When the Mystery roll lands on "curse", `resolveMystery()` calls `drawRandomCurses(1)`, appends the curse `id` to `run.curses`, and logs the chosen curse alongside the node flavor text.
+- Curses now have a simple inspection helper: `logRunCurses()` resolves the IDs in `run.curses` through `data/curses.js` and logs a one-line summary of all active curses after Curse and Mystery nodes apply their effects.
 
 # Rewards, Marrow, packs, and artifacts:
 
-- Shop inventory currently pulls from Minion and Warrior tiers only; when Champion and Apex cards are added (task 16), inventory should be weighted by act (Act 1: Minion/Warrior, Act 2: +Champion, Act 3: +Apex) and generateShopInventory() should receive the current act.
-- run.artifacts currently stores artifact IDs only; if artifact passives or metadata become richer, move artifact definitions into a dedicated data file and either store full objects or resolve IDs through that file.
+- Shop inventory now supports act-aware tier weighting via `generateShopInventory(act)`. Act 1 offers only Minion/Warrior cards; later acts can add Champion and Apex cards with lower weights. Act tracking on nodes/run will be refined as multi-act maps are implemented.
+- Artifact data: added a stub `data/artifacts.js` with data-only artifact entries and a `getArtifactById(id)` helper. `run.artifacts` continues to store artifact IDs; a `logRunArtifacts()` helper can resolve and print their names for debugging. No artifact passive effects are wired into combat or map systems yet.
 - Boss/secret rewards and any artifact-granting sources are not yet implemented; Gatekeeper and artifact-related progression are blocked on this reward layer.
 
 # Systems pinned to future work
@@ -164,6 +169,6 @@ Systems implemented:
 22. ✅ Add one Elite and one Boss enemy per archetype with stats and simple abilities.
 23. ✅ Add boss node encounters using new boss IDs.
 24. ✅ Implement on-death enemy effects.
-25. Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
-26. Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.
-27. Add one Relic and one Drain support card to data/cards.js as data-only entries (effect text only, no logic yet).
+25. ✅ Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
+26. ✅ Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.
+27. ✅ Add one Relic and one Drain support card to data/cards.js as data-only entries (effect text only, no logic yet).
