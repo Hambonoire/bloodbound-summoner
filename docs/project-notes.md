@@ -87,6 +87,8 @@ Systems implemented:
 - resetMatch() currently rebuilds the deck via buildDeck() and dealOpeningHand() but still needs to guarantee that the deck is rebuilt from the full run card pool, not a stale subset.
 - startRun() only resets state and does not call buildDeck() or seed a starting deck; task 18 will seed the archetype starting deck into run.collection and then build the deck.
 - startMatchForArchetype() wraps startRun() + buildDeck() + dealOpeningHand() and accepts loose strings ("blood", "bone") to avoid typo-prone IDs in manual testing; startMatch()/startMatchForArchetype() together provide a one-call dev flow to begin a new run and first match.
+- [x] Deck rebuilding: `resetMatch()` now clears field/hand/deck/discard and calls `buildDeck()` + `dealOpeningHand()` so the draw pile is always rebuilt from the full `run.collection` pool after `startRun()` seeds it.
+- [ ] Verify `buildDeck()` always uses `run.collection` (no stale references to earlier deck arrays) and update to a `createDeckSystem` factory when the deck subsystem is fully migrated.
 
 # Run structure, archetypes, and multi-archetype support:
 
