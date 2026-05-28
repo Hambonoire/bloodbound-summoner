@@ -1,3 +1,32 @@
+const { createCostSystem } = require("./data/cost");
+
+const STARTING_DECKS = {
+  "blood-flesh": [
+    "bf_minion_01",
+    "bf_minion_01",
+    "bf_minion_02",
+    "bf_minion_02",
+    "bf_minion_03",
+    "bf_warrior_01",
+    "bf_warrior_01",
+    "bf_warrior_02",
+    "bf_warrior_02",
+    "bf_warrior_03",
+  ],
+  "undead-bone": [
+    "ub_minion_01",
+    "ub_minion_01",
+    "ub_minion_02",
+    "ub_minion_02",
+    "ub_minion_03",
+    "ub_warrior_01",
+    "ub_warrior_01",
+    "ub_warrior_02",
+    "ub_warrior_02",
+    "ub_warrior_03",
+  ],
+};
+
 const cards = [
   // --- BLOOD/FLESH — MINION ---
 
@@ -157,19 +186,6 @@ const cards = [
     effect: "On attack: if a friendly summon died this turn, +3 attack.",
   },
 
-  // --- UNDEAD/BONE — SACRIFICE SUPPORT ---
-
-  {
-    id: "ub_sacrifice_01",
-    name: "Bone Harvest",
-    archetype: "undead-bone",
-    tier: "minion",
-    type: "sacrifice",
-    cost: { sacrifice: 1, marrow: 0 },
-    effect:
-      "Sacrifice one of your summons. Gain 2 Marrow and summon one Bone Shard from your deck or discard.",
-  },
-
   // --- Champion Tier ---
 
   // Blood/Flesh Champions
@@ -251,4 +267,180 @@ const cards = [
     effect:
       "On summon: resurrect one destroyed summon from discard at half its defense.",
   },
+
+  // --- SUPPORT CARDS ---
+
+  // --- GENERIC — RELIC SUPPORT ---
+
+  {
+    id: "generic_relic_01",
+    name: "Bloodbound Sigil",
+    archetype: "generic",
+    tier: "relic",
+    type: "relic",
+    cost: { hp: 0, blood: 0, marrow: 5 },
+    effect:
+      "Passive: Your maximum Blood increases by 2. When you enter a combat with at least 10 Pain, gain 2 Blood.",
+  },
+
+  // --- BLOOD/FLESH — DRAIN SUPPORT ---
+
+  {
+    id: "bf_drain_01",
+    name: "Sanguine Siphon",
+    archetype: "blood-flesh",
+    tier: "minion",
+    type: "drain",
+    cost: { hp: 2, blood: 0 },
+    effect:
+      "Drain 3 HP from target enemy: it loses 3 HP, you heal 3 HP, and gain 1 Blood. This damage counts as self-inflicted for Pain if it would overflow.",
+  },
+
+  // --- UNDEAD/BONE — SACRIFICE SUPPORT ---
+
+  {
+    id: "ub_sacrifice_01",
+    name: "Bone Harvest",
+    archetype: "undead-bone",
+    tier: "minion",
+    type: "sacrifice",
+    cost: { sacrifice: 1, marrow: 0 },
+    effect:
+      "Sacrifice one of your summons. Gain 2 Marrow and summon one Bone Shard from your deck or discard.",
+  },
 ];
+
+const HAND_SIZE = 5;
+const MAX_HAND_SIZE = 7;
+const MAX_FIELD_SIZE = 5;
+const FORCED_DISCARD_BLOOD_DRAIN = 2;
+
+const costSystem = createCostSystem({ player, onEndRun: endRun });
+
+function createDeckSystem({ player, run, cards }) {
+  function buildDeck() {
+    player.deck = shuffle([...run.collection]);
+    player.hand = [];
+    player.discard = [];
+    console.log(`Deck built. ${player.deck.length} cards.`);
+  }
+  function reshuffleDeck() {
+    player.deck = shuffle([...player.discard]);
+    player.discard = [];
+    console.log(`Deck reshuffled from discard. ${player.deck.length} cards.`);
+  }
+  function dealOpeningHand() {
+    for (let i = 0; i < HAND_SIZE; i++) {
+      drawCard();
+    }
+    console.log(
+      `Opening hand dealt: ${player.hand.map((c) => c.name).join(", ")}`,
+    );
+  }
+  function drawCard() {
+    if (player.deck.length === 0) {
+      if (player.discard.length === 0) {
+        console.log("No cards left to draw.");
+        return null;
+      }
+      reshuffleDeck();
+    }
+
+    const card = player.deck.pop();
+    player.hand.push(card);
+    console.log(`Drew: ${card.name} | Hand: ${player.hand.length}`);
+    return card;
+  }
+  function discardCard(cardId) {
+    const index = player.hand.findIndex((c) => c.id === cardId);
+    if (index === -1) {
+      console.log("Card not in hand.");
+      return;
+    }
+    const card = player.hand.splice(index, 1)[0];
+    player.discard.push(card);
+    console.log(`Discarded: ${card.name} | Hand: ${player.hand.length}`);
+  }
+  function discardHand() {
+    player.discard.push(...player.hand);
+    player.hand = [];
+    console.log("Full hand discarded.");
+  }
+  function canPlayCard(card) {
+    if (card.type === "summon" && player.field.length >= MAX_FIELD_SIZE) {
+      console.log(`Field is full. Cannot summon: ${card.name}`);
+      return false;
+    }
+    if (card.apexLocked && !player.apexUnlocked) {
+      console.log(`${card.name} requires Apex unlock (Pain milestone 20).`);
+      return false;
+    }
+
+    return canAfford(card);
+  }
+  function getCardById(id) {
+    return cards.find((c) => c.id === id) || null;
+  }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+  function playCard(card) {
+    if (!canPlayCard(card)) {
+      console.log(`Cannot play: ${card.name}`);
+      return false;
+    }
+
+    payCost(card);
+    applyEffect(card);
+
+    if (card.type === "summon") {
+      player.field.push(card);
+      console.log(
+        `Summoned: ${card.name} | ATK: ${card.attack + player.summonAttackBonus} | DEF: ${card.defense} | Field: ${player.field.length}/${MAX_FIELD_SIZE}`,
+      );
+    }
+
+    discardCard(card.id);
+
+    return true;
+  }
+  function drawRandom(pool, count) {
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  }
+  function endTurnDiscardDownToLimit() {
+    if (player.hand.length <= MAX_HAND_SIZE) return;
+
+    console.log(
+      `Hand exceeds limit (${player.hand.length}/${MAX_HAND_SIZE}). Discarding down to cap...`,
+    );
+
+    while (player.hand.length > MAX_HAND_SIZE) {
+      const card = player.hand[player.hand.length - 1];
+      console.log(`Forced discard: ${card.name}`);
+      discardCard(card.id);
+      drainBlood(FORCED_DISCARD_BLOOD_DRAIN);
+    }
+  }
+
+  return {
+    buildDeck,
+    reshuffleDeck,
+    dealOpeningHand,
+    drawCard,
+    discardCard,
+    discardHand,
+    canPlayCard,
+    getCardById,
+    shuffle,
+    playCard,
+    drawRandom,
+    endTurnDiscardDownToLimit,
+  };
+}
+
+module.exports = { createDeckSystem, STARTING_DECKS, cards };

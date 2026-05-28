@@ -147,3 +147,5 @@ const enemies = [
       "Whenever it kills a summon, summons a Shambling Corpse to the encounter. At 50% and 25% HP thresholds, heals 6 HP and gains +2 armor.",
   },
 ];
+
+module.exports = { enemies };

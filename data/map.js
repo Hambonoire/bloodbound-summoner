@@ -1,133 +1,451 @@
-const act1Map = {
-  act: 1,
-  currentNodeId: "node_01",
-  nodes: [
-    {
-      id: "node_01",
-      type: "combat",
-      title: "The Ashfield",
-      enemies: ["grunt_01", "grunt_02"],
-      completed: false,
-      locked: false,
-      connections: ["node_02", "node_03"],
-      secret: null,
-    },
-    {
-      id: "node_02",
-      type: "ritual",
-      title: "The Bleeding Stone",
-      completed: false,
-      locked: true,
-      connections: ["node_04"],
-      secret: null,
-    },
-    {
-      id: "node_03",
-      type: "combat",
-      title: "Carrion Pass",
-      enemies: ["grunt_02", "grunt_03"],
-      completed: false,
-      locked: true,
-      connections: ["node_04"],
-      secret: null,
-    },
-    {
-      id: "node_04",
-      type: "shop",
-      title: "The Marrow Merchant",
-      completed: false,
-      locked: true,
-      connections: ["node_05", "node_06"],
-      secret: null,
-    },
-    {
-      id: "node_05",
-      type: "mystery",
-      title: "The Hollow",
-      completed: false,
-      locked: true,
-      connections: ["node_07"],
-      secret: {
-        discovered: false,
-        hintId: "hint_01",
-        hint: "A symbol carved in bone. It means nothing to you. Yet.",
-      },
-    },
-    {
-      id: "node_06",
-      type: "combat",
-      title: "The Rot Fields",
-      enemies: ["soldier_01", "grunt_01"],
-      completed: false,
-      locked: true,
-      connections: ["node_07"],
-      secret: null,
-    },
-    {
-      id: "node_07",
-      type: "curse",
-      title: "The Cursed Altar",
-      completed: false,
-      locked: true,
-      connections: ["node_08"],
-      secret: null,
-    },
-    {
-      id: "node_08",
-      type: "rest",
-      title: "The Dying Ember",
-      completed: false,
-      locked: true,
-      connections: ["node_09", "node_10"],
-      secret: null,
-    },
-    {
-      id: "node_09",
-      type: "combat",
-      title: "The Bonepile",
-      enemies: ["soldier_02", "grunt_03"],
-      completed: false,
-      locked: true,
-      connections: ["node_11"],
-      secret: null,
-    },
-    {
-      id: "node_10",
-      type: "hidden_secret",
-      title: "???",
-      completed: false,
-      locked: true,
-      connections: ["node_11"],
-      secret: {
-        discovered: false,
-        hintId: "hint_02",
-        hint: "A name scratched into the wall. You can almost read it.",
-      },
-    },
-    {
-      id: "node_11",
-      type: "gatekeeper",
-      title: "The Warden's Gate",
-      completed: false,
-      locked: true,
-      requiredArtifacts: ["artifact_01"],
-      connections: ["node_12"],
-      secret: null,
-    },
-    {
-      id: "node_12",
-      type: "boss",
-      title: "The Hollow King's Court",
-      enemies: ["boss_01"],
-      completed: false,
-      locked: true,
-      connections: [],
-      secret: null,
-      isBoss: true,
-    },
-  ],
-};
+const { curses, drawRandomCurses } = require("./data/curses");
 
-module.exports = {
-  act1Map,
-};
+function createMapSystem() {
+  const act1Map = {
+    act: 1,
+    currentNodeId: "node_01",
+    nodes: [
+      {
+        id: "node_01",
+        type: "combat",
+        title: "The Ashfield",
+        enemies: ["grunt_01", "grunt_02"],
+        completed: false,
+        locked: false,
+        connections: ["node_02", "node_03"],
+        secret: null,
+      },
+      {
+        id: "node_02",
+        type: "ritual",
+        title: "The Bleeding Stone",
+        completed: false,
+        locked: true,
+        connections: ["node_04"],
+        secret: null,
+      },
+      {
+        id: "node_03",
+        type: "combat",
+        title: "Carrion Pass",
+        enemies: ["grunt_02", "grunt_03"],
+        completed: false,
+        locked: true,
+        connections: ["node_04"],
+        secret: null,
+      },
+      {
+        id: "node_04",
+        type: "shop",
+        title: "The Marrow Merchant",
+        completed: false,
+        locked: true,
+        connections: ["node_05", "node_06"],
+        secret: null,
+      },
+      {
+        id: "node_05",
+        type: "mystery",
+        title: "The Hollow",
+        completed: false,
+        locked: true,
+        connections: ["node_07"],
+        secret: {
+          discovered: false,
+          hintId: "hint_01",
+          hint: "A symbol carved in bone. It means nothing to you. Yet.",
+        },
+      },
+      {
+        id: "node_06",
+        type: "combat",
+        title: "The Rot Fields",
+        enemies: ["soldier_01", "grunt_01"],
+        completed: false,
+        locked: true,
+        connections: ["node_07"],
+        secret: null,
+      },
+      {
+        id: "node_07",
+        type: "curse",
+        title: "The Cursed Altar",
+        completed: false,
+        locked: true,
+        connections: ["node_08"],
+        secret: null,
+      },
+      {
+        id: "node_08",
+        type: "rest",
+        title: "The Dying Ember",
+        completed: false,
+        locked: true,
+        connections: ["node_09", "node_10"],
+        secret: null,
+      },
+      {
+        id: "node_09",
+        type: "combat",
+        title: "The Bonepile",
+        enemies: ["soldier_02", "grunt_03"],
+        completed: false,
+        locked: true,
+        connections: ["node_11"],
+        secret: null,
+      },
+      {
+        id: "node_10",
+        type: "hidden_secret",
+        title: "???",
+        completed: false,
+        locked: true,
+        connections: ["node_11"],
+        secret: {
+          discovered: false,
+          hintId: "hint_02",
+          hint: "A name scratched into the wall. You can almost read it.",
+        },
+      },
+      {
+        id: "node_11",
+        type: "gatekeeper",
+        title: "The Warden's Gate",
+        completed: false,
+        locked: true,
+        requiredArtifacts: ["artifact_01"],
+        connections: ["node_12"],
+        secret: null,
+      },
+      {
+        id: "node_12",
+        type: "boss",
+        title: "The Hollow King's Court",
+        enemies: ["boss_01"],
+        completed: false,
+        locked: true,
+        connections: [],
+        secret: null,
+        isBoss: true,
+      },
+    ],
+  };
+  function getNode(id) {
+    return act1Map.nodes.find((n) => n.id === id);
+  }
+  function travelToNode(id) {
+    const node = getNode(id);
+    if (!node) {
+      console.log("Node not found.");
+      return;
+    }
+    if (node.locked) {
+      console.log(`${node.title} is locked.`);
+      return;
+    }
+    act1Map.currentNodeId = id;
+    console.log(`Traveling to: ${node.title} [${node.type}]`);
+  }
+  function resolveNode(nodeId) {
+    const node = getNode(nodeId);
+    if (!node) {
+      console.log("Node not found.");
+      return;
+    }
+    if (node.locked) {
+      console.log(`${node.title} is locked.`);
+      return;
+    }
+    if (node.completed) {
+      console.log(`${node.title} already completed.`);
+      return;
+    }
+
+    switch (node.type) {
+      case "combat":
+        resolveCombatNode(node, { isBoss: !!node.isBoss });
+        break;
+      case "boss":
+        resolveCombatNode(node, { isBoss: true });
+        break;
+      case "ritual":
+        resolveRitual(node);
+        break;
+      case "rest":
+        resolveRest(node);
+        break;
+      case "curse":
+        resolveCurse(node);
+        break;
+      case "mystery":
+        resolveMystery(node);
+        break;
+      case "gatekeeper":
+        resolveGatekeeper(node);
+        break;
+      default:
+        console.log(`No resolver for node type: ${node.type}`);
+    }
+  }
+  function resolveCombatNode(node, { isBoss = false } = {}) {
+    if (!Array.isArray(node.enemies) || node.enemies.length === 0) {
+      console.log(`${node.title}: No enemies defined.`);
+      return;
+    }
+
+    const enemyList = node.enemies
+      .map((id) => getEnemyById(id))
+      .filter(Boolean);
+
+    if (enemyList.length === 0) {
+      console.log(`${node.title}: No valid enemies resolved from IDs.`);
+      return;
+    }
+
+    if (isBoss) {
+      console.log(
+        `*** Boss Encounter: ${node.title} — ${enemyList
+          .map((e) => e.name)
+          .join(", ")} ***`,
+      );
+    } else {
+      console.log(
+        `Encounter at ${node.title}: ${enemyList.map((e) => e.name).join(", ")}`,
+      );
+    }
+
+    startEncounter(enemyList);
+
+    // Mark node as completed handled by checkEncounterEnd() later, once win detected.
+    // For now, manually mark it if encounter end logic isn't wired yet:
+    // completeNode(node.id);
+  }
+  function resolveGatekeeper(node) {
+    const requiredArtifacts = node.requiredArtifacts || [];
+
+    if (requiredArtifacts.length === 0) {
+      console.log(`${node.title}: No artifact requirement. Passing through.`);
+      completeNode(node.id);
+      return;
+    }
+
+    const missing = requiredArtifacts.filter(
+      (id) => !run.artifacts.includes(id),
+    );
+
+    if (missing.length > 0) {
+      console.log(
+        `${node.title}: BLOCKED — missing artifact(s): ${missing.join(", ")}`,
+      );
+      return;
+    }
+
+    console.log(`${node.title}: Artifacts verified. Gate opens.`);
+    completeNode(node.id);
+  }
+  function resolveShop(node) {
+    const act = node.act || 1; // or derive from mapSystem / run if you track act elsewhere
+
+    const inventory = shopSystem.generateShopInventory(act);
+    shop.inventory = inventory;
+
+    console.log(
+      `${node.title}: Shop opens with ${inventory.length} cards (Act ${act}).`,
+    );
+  }
+  function resolveRitual(node) {
+    // Player pays HP for a card reward or Marrow. Two fixed options per the design doc.
+    const hpCost = 5;
+    if (player.hp - hpCost <= 0) {
+      console.log(`${node.title}: Cannot pay ritual cost — would be lethal.`);
+      return;
+    }
+
+    dealSelfDamage(hpCost);
+
+    // Reward: add a random card from the pool to run.collection
+    const pool = cards.filter(
+      (c) => c.tier === "minion" || c.tier === "warrior",
+    );
+    const reward = drawRandom(pool, 1)[0];
+    if (reward) {
+      run.collection.push(reward);
+      console.log(`${node.title}: Ritual complete. Received: ${reward.name}`);
+    }
+
+    completeNode(node.id);
+  }
+  function resolveRest(node) {
+    // Healing restores HP but drains the Pain meter (per game-design.md).
+    const healAmount = 8;
+    const painDrain = 5;
+
+    const prevHp = player.hp;
+    player.hp = Math.min(player.hp + healAmount, player.maxHp);
+    const healed = player.hp - prevHp;
+
+    const prevPain = player.pain;
+    player.pain = Math.max(player.pain - painDrain, 0);
+    const drained = prevPain - player.pain;
+
+    updatePainZone();
+
+    console.log(
+      `${node.title}: Rested. HP restored: +${healed} (${player.hp}/${player.maxHp}) | Pain drained: -${drained} (${player.pain})`,
+    );
+
+    completeNode(node.id);
+  }
+  function resolveCurse(node) {
+    // Player accepts a curse; receives a card reward in return.
+    // Curses are strings for now — effect resolution is a future task.
+    const [curse] = drawRandomCurses(1);
+
+    if (!curse) {
+      console.log("No curses available in pool.");
+      return;
+    }
+
+    run.curses = run.curses || [];
+    run.curses.push(curse.id);
+
+    console.log(
+      `You are afflicted with a curse: ${curse.name} — ${curse.effect}`,
+    );
+
+    // Card reward: weighted toward champion tier if it exists in pool
+    const rewardPool = cards.filter(
+      (c) => c.tier === "warrior" || c.tier === "champion",
+    );
+    const fallback = cards.filter((c) => c.tier === "warrior");
+    const pool = rewardPool.length ? rewardPool : fallback;
+    const reward = drawRandom(pool, 1)[0];
+
+    if (reward) {
+      run.collection.push(reward);
+      console.log(`${node.title}: Received in exchange — ${reward.name}`);
+    }
+
+    logRunCurses();
+
+    completeNode(node.id);
+  }
+  function logRunCurses() {
+    if (!run.curses || run.curses.length === 0) {
+      console.log("Active curses this run: none.");
+      return;
+    }
+
+    const active = run.curses
+      .map((id) => curses.find((c) => c.id === id))
+      .filter(Boolean);
+
+    if (active.length === 0) {
+      console.log("Active curses this run: unknown IDs only.");
+      return;
+    }
+
+    const names = active.map((c) => c.name).join(", ");
+    console.log(`Active curses this run: ${names}.`);
+  }
+  function resolveMystery(node) {
+    // High variance — one of four outcomes, weighted.
+    const roll = Math.random();
+    let outcome;
+
+    if (roll < 0.3) {
+      outcome = "marrow";
+    } else if (roll < 0.55) {
+      outcome = "card";
+    } else if (roll < 0.75) {
+      outcome = "damage";
+    } else {
+      outcome = "curse";
+    }
+
+    console.log(`${node.title}: Mystery resolves...`);
+
+    switch (outcome) {
+      case "marrow": {
+        const amount = rollMarrow(4, 10);
+        earnMarrow(amount);
+        console.log(`${node.title}: Found forgotten Marrow. (+${amount})`);
+        break;
+      }
+      case "card": {
+        const pool = cards.filter(
+          (c) => c.tier === "minion" || c.tier === "warrior",
+        );
+        const reward = drawRandom(pool, 1)[0];
+        if (reward) {
+          run.collection.push(reward);
+          console.log(`${node.title}: A card materializes — ${reward.name}`);
+        }
+        break;
+      }
+      case "damage": {
+        const amount = rollMarrow(3, 8); // reuse helper for int in range
+        dealSelfDamage(amount);
+        console.log(
+          `${node.title}: Something unseen cuts you. (-${amount} HP)`,
+        );
+        break;
+      }
+      case "curse": {
+        // Reuse shared curse pool from data/curses.js
+        const [curse] = drawRandomCurses(1);
+
+        if (!curse) {
+          console.log(
+            `${node.title}: The air is heavy, but nothing binds you.`,
+          );
+          break;
+        }
+
+        run.curses = run.curses || [];
+        run.curses.push(curse.id);
+
+        console.log(
+          `${node.title}: You are marked. — ${curse.name}: ${curse.effect}`,
+        );
+
+        logRunCurses();
+        break;
+      }
+    }
+
+    completeNode(node.id);
+  }
+  function discoverSecret(node) {
+    node.secret.discovered = true;
+    run.discoveredHints = run.discoveredHints || [];
+    run.discoveredHints.push(node.secret.hintId);
+    console.log(`Secret discovered — ${node.secret.hint}`);
+    console.log(`Hints found this run: ${run.discoveredHints.length}`);
+  }
+  function completeNode(id) {
+    const node = getNode(id);
+    if (!node) return;
+
+    node.completed = true;
+
+    // check for secret discovery
+    if (node.secret && !node.secret.discovered) {
+      discoverSecret(node);
+    }
+
+    // unlock connected nodes
+    node.connections.forEach((connId) => {
+      const next = getNode(connId);
+      if (next) {
+        next.locked = false;
+        console.log(`Node unlocked: ${next.title}`);
+      }
+    });
+
+    act1Map.currentNodeId = id;
+    console.log(`Node completed: ${node.title}`);
+  }
+}
+
+module.exports = { createMapSystem };
