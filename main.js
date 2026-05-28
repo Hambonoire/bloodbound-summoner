@@ -1,10 +1,12 @@
 console.log("Bloodbound Summoner prototype initialized.");
 
+const { createDeckSystem, STARTING_DECKS, cards } = require("./data/cards");
 const { createMapSystem } = require("./data/map");
 const { enemies } = require("./data/enemies");
 const { createCombatSystem } = require("./data/combat");
 const { createEconomySystem } = require("./data/economy");
 const { createCostSystem } = require("./data/status-effects.js");
+const { artifacts, getArtifactById } = require("./data/artifacts");
 
 const game = {
   title: "Bloodbound Summoner",
@@ -63,6 +65,8 @@ const encounter = {
   active: false,
 };
 
+const deckSystem = createDeckSystem({ player, run, cards });
+
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 
 function startRun(startingArchetype) {
@@ -91,6 +95,7 @@ function startRun(startingArchetype) {
   triggeredMilestones.clear();
 
   const deckIds = STARTING_DECKS[startingArchetype];
+
   if (!deckIds) {
     console.log(
       `Unknown starting archetype: ${startingArchetype}. No starting deck seeded.`,
@@ -117,30 +122,22 @@ function startRun(startingArchetype) {
 }
 
 function resetMatch() {
-  // Clear battlefield and hand/discard piles
   player.field = [];
   player.hand = [];
   player.deck = [];
   player.discard = [];
-  // Always rebuild from full run card pool
-  buildDeck(); // should read from run.collection
-  dealOpeningHand(); // starting hand for the new match
 
-  // Pain meter reset
+  deckSystem.buildDeck();
+  deckSystem.dealOpeningHand();
+
   player.pain = 0;
   player.painZone = "cold";
   triggeredMilestones.clear();
 
-  // Blood resets to 0 between matches
   player.blood = 0;
-
-  // summon attack bonus resets
   player.summonAttackBonus = 0;
-
-  // apex lock resets
   player.apexUnlocked = false;
 
-  // encounter resets
   encounter.enemies = [];
   encounter.turn = 0;
   encounter.active = false;
@@ -162,7 +159,6 @@ function startMatchForArchetype(archetypeName) {
     return;
   }
 
-  // After startRun seeds run.collection, build a fresh match
   resetMatch();
 }
 
@@ -220,6 +216,23 @@ function playerTurn(card) {
 
   playCard(card);
   endPlayerTurn();
+}
+
+function logRunArtifacts() {
+  if (!run.artifacts || run.artifacts.length === 0) {
+    console.log("Artifacts this run: none.");
+    return;
+  }
+
+  const active = run.artifacts.map((id) => getArtifactById(id)).filter(Boolean);
+
+  if (active.length === 0) {
+    console.log("Artifacts this run: unknown IDs only.");
+    return;
+  }
+
+  const names = active.map((a) => a.name).join(", ");
+  console.log(`Artifacts this run: ${names}.`);
 }
 
 function endPlayerTurn() {
