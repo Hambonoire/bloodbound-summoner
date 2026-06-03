@@ -5,7 +5,8 @@ const { createMapSystem } = require("./data/map");
 const { enemies } = require("./data/enemies");
 const { createCombatSystem } = require("./data/combat");
 const { createEconomySystem } = require("./data/economy");
-const { createCostSystem } = require("./data/status-effects.js");
+const { createCostSystem } = require("./data/status-effects");
+const { createEffectSystem } = require("./data/effects");
 const { artifacts, getArtifactById } = require("./data/artifacts");
 
 const game = {
@@ -65,7 +66,15 @@ const encounter = {
   active: false,
 };
 
-const deckSystem = createDeckSystem({ player, run, cards });
+const deckSystem = createDeckSystem({ player, run, cards, effectSystem });
+
+const effectSystem = createEffectSystem({
+  player,
+  run,
+  encounter,
+  deckSystem,
+  costSystem,
+});
 
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 

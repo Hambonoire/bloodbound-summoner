@@ -96,11 +96,6 @@ function createCostSystem({ player, onEndRun }) {
       `Player afflicted with Bleed: ${player.statuses.bleedStacks} stack(s) for ${player.statuses.bleedTurnsRemaining} turn(s).`,
     );
   }
-  function applyEffect(card) {
-    if (!card.effect) return;
-    // effects are strings for now — log and handle manually until effect system is built
-    console.log(`Effect triggered [${card.name}]: ${card.effect}`);
-  }
 
   // Status / pain
 

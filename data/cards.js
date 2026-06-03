@@ -322,7 +322,7 @@ const FORCED_DISCARD_BLOOD_DRAIN = 2;
 
 const costSystem = createCostSystem({ player, onEndRun: endRun });
 
-function createDeckSystem({ player, run, cards }) {
+function createDeckSystem({ player, run, cards, effectSystem }) {
   function buildDeck() {
     player.deck = shuffle([...run.collection]);
     player.hand = [];
@@ -400,12 +400,17 @@ function createDeckSystem({ player, run, cards }) {
     }
 
     payCost(card);
-    applyEffect(card);
+
+    if (effectSystem && effectSystem.applyCardEffect) {
+      effectSystem.applyCardEffect(card);
+    }
 
     if (card.type === "summon") {
       player.field.push(card);
       console.log(
-        `Summoned: ${card.name} | ATK: ${card.attack + player.summonAttackBonus} | DEF: ${card.defense} | Field: ${player.field.length}/${MAX_FIELD_SIZE}`,
+        `Summoned: ${card.name} | ATK: ${
+          card.attack + player.summonAttackBonus
+        } | DEF: ${card.defense} | Field: ${player.field.length}/${MAX_FIELD_SIZE}`,
       );
     }
 
