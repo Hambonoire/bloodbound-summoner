@@ -1,5 +1,10 @@
 const { createCostSystem } = require("./data/cost");
 
+// Starting deck composition (10 cards each, no support cards by design).
+// Blood/Flesh: 3 Minions (5× across 3 IDs) + 2 Warriors (2× each) + 1 high-cost Warrior.
+// Undead/Bone: same shape — 3 Minion types + 3 Warrior types.
+// Support cards (Ritual, Sacrifice, Relic, Drain) are pack/shop-only rewards.
+// This is intentional: the player discovers synergy through the run, not the starting hand.
 const STARTING_DECKS = {
   "blood-flesh": [
     "bf_minion_01",

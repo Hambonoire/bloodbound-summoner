@@ -50,7 +50,7 @@ const run = {
   collection: [],
   curses: [],
   artifacts: [],
-  discoveries: [],
+  discoveredHints: [],
   archetypes: null,
 };
 
@@ -75,7 +75,7 @@ function startRun(startingArchetype) {
   run.curses = [];
   run.artifacts = [];
   run.discoveredHints = [];
-  run.archetype = null;
+  run.archetypes = null;
 
   // Reset player core stats
   player.hp = 30;
@@ -92,7 +92,7 @@ function startRun(startingArchetype) {
   player.discard = [];
 
   // Reset pain milestones
-  triggeredMilestones.clear();
+  costSystem.resetMilestones();
 
   const deckIds = STARTING_DECKS[startingArchetype];
 
@@ -132,7 +132,7 @@ function resetMatch() {
 
   player.pain = 0;
   player.painZone = "cold";
-  triggeredMilestones.clear();
+  costSystem.resetMilestones();
 
   player.blood = 0;
   player.summonAttackBonus = 0;
