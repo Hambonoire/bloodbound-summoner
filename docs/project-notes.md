@@ -9,7 +9,7 @@ No UI layer. All development is console-first until further notice.
 Systems implemented:
 
 - Player state, Pain meter, Blood pool, Marrow
-- Card play, cost resolution, effect logging
+- Card play, cost resolution, and first-pass support card effect resolution
 - Combat encounter loop (player turn, enemy turn, win/loss check)
 - Draw system (deck, hand, discard, reshuffle with Blood drain penalty)
 - Pack reward selection
@@ -54,14 +54,13 @@ Systems implemented:
 # Card data and references:
 
 - ub_minion_03 (Grave Crawler): on-death effect currently references Bone Shard by name; should resolve to ub_minion_01 by ID when on-death logic is implemented (see task 24).
-- ub_sacrifice_01 (Bone Harvest): effect text references summoning Bone Shard from deck or discard by ID (ub_minion_01); implementation is pending the general support/effect resolution system.
 - bf_champion_01 (Fleshbinder): "heal 2 HP per summon on field" uses player.field.length at summon time; when effect resolution is implemented, decide whether it counts the new summon before or after it enters the field.
 - ub_champion_01 (Bonecage Titan): "absorbs overflow damage" will need to flag specific summons as overflow-blocking and change damage routing in enemyAttack().
 - ub_apex_01 (The Hollow King): resurrection from discard will need a target-selection step (auto or player choice) that reads player.discard.
 - apexLocked: true is currently the only card-level playability gate; if more unlock conditions are added, consider a generic requiresFlag field instead of more booleans.
-- Support cards: one generic Relic and one Blood/Flesh Drain card have been added as data-only entries in `data/cards.js`.
-  - `generic_relic_01 (Bloodbound Sigil)`: Relic, generic archetype. Effect text: raises max Blood and grants bonus Blood when entering combat at high Pain. No passive logic wired yet.
-  - `bf_drain_01 (Sanguine Siphon)`: Drain support for Blood/Flesh. Effect text: drains HP from an enemy, heals the player, and generates Blood, with overflow damage flagged for future Pain interactions. Targeting and drain resolution are deferred to the effect system.
+- Remaining data-only support cards: one generic Relic and one Blood/Flesh Drain entry are still present in `data/cards.js` without full gameplay logic.
+  - `generic_relic_01 (Bloodbound Sigil)`: Relic, generic archetype. Effect text raises max Blood and grants bonus Blood when entering combat at high Pain. No passive logic wired yet.
+  - `bf_drain_01 (Sanguine Siphon)`: Drain support for Blood/Flesh. Effect text drains HP from an enemy, heals the player, and generates Blood, with overflow damage flagged for future Pain interactions. Targeting and drain resolution are still deferred.
 
 # Costs, Pain, Blood, and effect system:
 
@@ -69,9 +68,12 @@ Systems implemented:
 - canAfford(): blocks play if an HP cost would reduce the player to 0 or below; the "death on cost" edge case may need revisiting depending on desired lethality.
 - Pain meter: triggeredMilestones is a module-level Set and must be reset on match start alongside the Pain reset rule.
 - gainBlood() reads player.painZone before updatePainZone() updates it, so Blood gain on the threshold-crossing damage uses the old rate; this is intentional for now but may be re-tuned after testing.
-- applyEffect(): currently logs effect strings only; full effect resolution (including curses, champion/apex effects, and enemy on-death effects) is a future system.
-- Champion/Apex effects (overflow absorption, resurrection, attack debuff) all rely on the future effect system and will each need dedicated handlers, likely implemented alongside curses (task 26) and enemy on-death (task 24).
-- bf_ritual_01 (Bloodletting Rite): effect text assumes HP self-damage from the cost will correctly fill Blood and trigger Pain milestones; currently logged only, pending hook-up to the effect system.
+- First-pass card effect resolution is now wired through `data/effects.js` via `createEffectSystem({ player, run, encounter, costSystem })`.
+- `deckSystem.playCard()` now resolves costs first through `costSystem.payCost(card)`, then card effects through `effectSystem.applyCardEffect(card)`, then performs normal post-play cleanup.
+- bf_ritual_01 (Bloodletting Rite): now resolves through `data/effects.js`; after its HP self-damage cost is paid, it grants its bonus Blood through the effect system.
+- ub_sacrifice_01 (Bone Harvest): now resolves through `data/effects.js`; after its sacrifice cost is paid, it grants 2 Marrow and summons `ub_minion_01` (Bone Shard) from deck first, then discard.
+- The effect system is still first-pass only; unhandled cards continue to fall back to effect-text logging until dedicated handlers are added.
+- Champion/Apex effects (overflow absorption, resurrection, attack debuff), curse application, and more complex enemy/card interactions still need dedicated handlers on top of the current effect system.
 
 # Combat flow and targeting:
 
@@ -172,3 +174,5 @@ Systems implemented:
 25. ✅ Wire run.collection into buildDeck() and resetMatch() so the deck is always rebuilt from the full run card pool.
 26. ✅ Extract curse definitions into data/curses.js and have resolveCurse() and resolveMystery() pull from that shared pool.
 27. ✅ Add one Relic and one Drain support card to data/cards.js as data-only entries (effect text only, no logic yet).
+28. ✅ Run init hardening.
+29. ✅ First-pass card effect system (Bloodletting Rite + Bone Harvest)
