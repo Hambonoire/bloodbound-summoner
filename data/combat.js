@@ -1,4 +1,4 @@
-const { createCostSystem } = require("./data/status-effects.js");
+const { createCostSystem } = require("./status-effects.js");
 
 function createCombatSystem({ player, encounter, onEndRun }) {
   function endRun(reason) {

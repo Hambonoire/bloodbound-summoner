@@ -8,6 +8,7 @@ const { createEconomySystem } = require("./data/economy");
 const { createCostSystem } = require("./data/status-effects");
 const { createEffectSystem } = require("./data/effects");
 const { artifacts, getArtifactById } = require("./data/artifacts");
+const { createShopSystem } = require("./data/shopLogic");
 
 const game = {
   title: "Bloodbound Summoner",
@@ -44,9 +45,6 @@ const player = {
 console.log("Bloodbound Summoner initialized.");
 console.log(player);
 
-const mapSystem = createMapSystem();
-const costSystem = createCostSystem({ player, onEndRun: endRun });
-
 const run = {
   collection: [],
   curses: [],
@@ -66,16 +64,23 @@ const encounter = {
   active: false,
 };
 
-const deckSystem = createDeckSystem({ player, run, cards, effectSystem });
+const mapSystem = createMapSystem();
+const costSystem = createCostSystem({ player, onEndRun: endRun });
 
 const effectSystem = createEffectSystem({
   player,
   run,
   encounter,
-  deckSystem,
   costSystem,
 });
 
+const deckSystem = createDeckSystem({
+  player,
+  run,
+  cards,
+  costSystem,
+  effectSystem,
+});
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 
 function startRun(startingArchetype) {
@@ -112,7 +117,7 @@ function startRun(startingArchetype) {
     run.archetype = null;
   } else {
     deckIds.forEach((id) => {
-      const card = getCardById(id);
+      const card = deckSystem.getCardById(id);
       if (card) {
         run.collection.push(card);
       } else {
@@ -378,4 +383,41 @@ function endRun(reason) {
 
 --> insert start sequence here...
 */
+
+console.log("\n=== TEST: Bloodletting Rite ===");
+startMatchForArchetype("blood");
+
+const ritual = deckSystem.getCardById("bf_ritual_01");
+player.hand.push(ritual);
+deckSystem.playCard(ritual);
+
+console.log("After Bloodletting Rite:", {
+  hp: player.hp,
+  pain: player.pain,
+  blood: player.blood,
+  hand: player.hand.map((c) => c.id),
+  field: player.field.map((c) => c.id),
+});
+
+console.log("\n=== TEST: Bone Harvest ===");
+startMatchForArchetype("bone");
+
+const fodder = deckSystem.getCardById("ub_minion_02");
+player.field.push(fodder);
+
+const boneShard = deckSystem.getCardById("ub_minion_01");
+player.deck.push(boneShard);
+
+const boneHarvest = deckSystem.getCardById("ub_sacrifice_01");
+player.hand.push(boneHarvest);
+deckSystem.playCard(boneHarvest);
+
+console.log("After Bone Harvest:", {
+  marrow: player.marrow,
+  hand: player.hand.map((c) => c.id),
+  field: player.field.map((c) => c.id),
+  deck: player.deck.map((c) => c.id),
+  discard: player.discard.map((c) => c.id),
+});
+
 console.log(game);

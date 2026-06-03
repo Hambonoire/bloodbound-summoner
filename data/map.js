@@ -1,4 +1,4 @@
-const { curses, drawRandomCurses } = require("./data/curses");
+const { curses, drawRandomCurses } = require("./curses");
 
 function createMapSystem() {
   const act1Map = {

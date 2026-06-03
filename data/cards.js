@@ -1,5 +1,3 @@
-const { createCostSystem } = require("./data/cost");
-
 // Starting deck composition (10 cards each, no support cards by design).
 // Blood/Flesh: 3 Minions (5× across 3 IDs) + 2 Warriors (2× each) + 1 high-cost Warrior.
 // Undead/Bone: same shape — 3 Minion types + 3 Warrior types.
@@ -320,9 +318,7 @@ const MAX_HAND_SIZE = 7;
 const MAX_FIELD_SIZE = 5;
 const FORCED_DISCARD_BLOOD_DRAIN = 2;
 
-const costSystem = createCostSystem({ player, onEndRun: endRun });
-
-function createDeckSystem({ player, run, cards, effectSystem }) {
+function createDeckSystem({ player, run, cards, costSystem, effectSystem }) {
   function buildDeck() {
     player.deck = shuffle([...run.collection]);
     player.hand = [];
@@ -381,7 +377,7 @@ function createDeckSystem({ player, run, cards, effectSystem }) {
       return false;
     }
 
-    return canAfford(card);
+    return costSystem.canAfford(card);
   }
   function getCardById(id) {
     return cards.find((c) => c.id === id) || null;
@@ -399,7 +395,9 @@ function createDeckSystem({ player, run, cards, effectSystem }) {
       return false;
     }
 
-    payCost(card);
+    costSystem.payCost(card);
+
+    console.log(`Playing card: ${card.name} [${card.id}]`);
 
     if (effectSystem && effectSystem.applyCardEffect) {
       effectSystem.applyCardEffect(card);
