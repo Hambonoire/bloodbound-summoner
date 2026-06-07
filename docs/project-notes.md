@@ -176,3 +176,6 @@ Systems implemented:
 27. ✅ Add one Relic and one Drain support card to data/cards.js as data-only entries (effect text only, no logic yet).
 28. ✅ Run init hardening.
 29. ✅ First-pass card effect system (Bloodletting Rite + Bone Harvest)
+30. Add shared curse/artifact foundation in `data/curses.js` and `data/artifacts.js`
+31. Define the remaining run-progression gates
+32. Add a flexible progression scaffold for later content
