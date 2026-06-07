@@ -84,6 +84,7 @@ const deckSystem = createDeckSystem({
 
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 const shopSystem = createShopSystem({ player, run, cards, shop });
+const economySystem = createEconomySystem({ player, run, cards });
 
 function startRun(startingArchetype) {
   // Reset run-scoped state on the existing object
@@ -97,6 +98,7 @@ function startRun(startingArchetype) {
   player.hp = 30;
   player.maxHp = 30;
   player.blood = 0;
+  player.maxBlood = 10;
   player.marrow = 0;
   player.pain = 0;
   player.painZone = "cold";
@@ -220,7 +222,7 @@ function playerTurn(card) {
     console.log(
       `Bleed ticks for ${player.statuses.bleedStacks} damage (${player.statuses.bleedTurnsRemaining} turn(s) remaining).`,
     );
-    dealSelfDamage(player.statuses.bleedStacks);
+    costSystem.dealSelfDamage(player.statuses.bleedStacks);
 
     player.statuses.bleedTurnsRemaining -= 1;
     if (player.statuses.bleedTurnsRemaining <= 0) {
@@ -230,7 +232,7 @@ function playerTurn(card) {
     }
   }
 
-  playCard(card);
+  deckSystem.playCard(card);
   endPlayerTurn();
 }
 
@@ -252,7 +254,7 @@ function logRunArtifacts() {
 }
 
 function endPlayerTurn() {
-  endTurnDiscardDownToLimit();
+  deckSystem.endTurnDiscardDownToLimit();
   enemyTurn();
 }
 
@@ -305,7 +307,7 @@ function executeEnemyIntent(enemy) {
         enemy.effect &&
         enemy.effect.startsWith("On attack: applies Bleed to the player")
       ) {
-        applyBleedToPlayer(1, 2);
+        costSystem.applyBleedToPlayer(1, 2);
       }
       break;
     case "block":
@@ -340,19 +342,19 @@ function checkEncounterEnd() {
 
     // Mark current map node completed and unlock connections
     if (map && map.currentNodeId) {
-      completeNode(map.currentNodeId);
+      mapSystem.completeNode(map.currentNodeId);
     }
 
     // Trigger pack reward selection
     // Marrow reward based on enemies
-    const baseMarrow = calculateMarrowReward(encounter.enemies);
+    const baseMarrow = economySystem.calculateMarrowReward(encounter.enemies);
 
     // Boss-only bonus: +3 Marrow if any boss was present
     const foughtBoss = encounter.enemies.some((e) => e.tier === "boss");
     const bossBonus = foughtBoss ? 3 : 0;
 
     const totalMarrow = baseMarrow + bossBonus;
-    earnMarrow(totalMarrow);
+    economySystem.earnMarrow(totalMarrow);
 
     console.log(
       `Combat reward: +${baseMarrow} Marrow` +
@@ -362,7 +364,7 @@ function checkEncounterEnd() {
 
     // Pack rewards (for now, pass a simple archetype tag; adjust later)
     const packArchetype = run.archetype || "blood-flesh";
-    const packOptions = offerPackRewards(packArchetype);
+    const packOptions = economySystem.offerPackRewards(packArchetype);
 
     console.log(
       "--- Choose a pack by index with selectPack(packOptions, index) ---",
