@@ -446,6 +446,14 @@ function createMapSystem() {
     act1Map.currentNodeId = id;
     console.log(`Node completed: ${node.title}`);
   }
+  return {
+    act1Map,
+    getNode,
+    travelToNode,
+    completeNode,
+    discoverSecret,
+    resolveNode,
+  };
 }
 
 module.exports = { createMapSystem };

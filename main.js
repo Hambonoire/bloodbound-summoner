@@ -81,7 +81,9 @@ const deckSystem = createDeckSystem({
   costSystem,
   effectSystem,
 });
+
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
+const shopSystem = createShopSystem({ player, run, cards, shop });
 
 function startRun(startingArchetype) {
   // Reset run-scoped state on the existing object

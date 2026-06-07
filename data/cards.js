@@ -431,7 +431,7 @@ function createDeckSystem({ player, run, cards, costSystem, effectSystem }) {
       const card = player.hand[player.hand.length - 1];
       console.log(`Forced discard: ${card.name}`);
       discardCard(card.id);
-      drainBlood(FORCED_DISCARD_BLOOD_DRAIN);
+      costSystem.drainBlood(FORCED_DISCARD_BLOOD_DRAIN);
     }
   }
 

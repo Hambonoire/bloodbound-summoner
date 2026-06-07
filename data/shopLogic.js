@@ -1,6 +1,8 @@
-function createShopSystem({ player, run, cards }) {
-  function openShop() {
-    shop.inventory = generateShopInventory();
+// data/shopLogic.js
+
+function createShopSystem({ player, run, cards, shop }) {
+  function openShop(act = 1) {
+    shop.inventory = generateShopInventory(act);
     console.log("--- Shop ---");
     shop.inventory.forEach((item, i) => {
       console.log(
@@ -11,25 +13,15 @@ function createShopSystem({ player, run, cards }) {
   }
 
   function tierWeightsForAct(act) {
-    // Default to Act 1 if act is missing or invalid
     const a = act || 1;
-
-    if (a === 1) {
-      return { minion: 3, warrior: 2 }; // no champion/apex yet
-    }
-
-    if (a === 2) {
-      return { minion: 3, warrior: 3, champion: 1 };
-    }
-
-    // Act 3+
+    if (a === 1) return { minion: 3, warrior: 2 };
+    if (a === 2) return { minion: 3, warrior: 3, champion: 1 };
     return { minion: 2, warrior: 3, champion: 2, apex: 1 };
   }
 
-  function generateShopInventory() {
+  function generateShopInventory(act = 1, size = 4) {
     const weights = tierWeightsForAct(act);
 
-    // Build a pool per tier
     const byTier = {
       minion: cards.filter((c) => c.tier === "minion"),
       warrior: cards.filter((c) => c.tier === "warrior"),
@@ -52,7 +44,6 @@ function createShopSystem({ player, run, cards }) {
     const inventory = [];
 
     for (let i = 0; i < size; i++) {
-      // pick a tier by weight
       let roll = Math.random() * totalWeight;
       let chosenTier = tiers[0];
 
@@ -68,17 +59,20 @@ function createShopSystem({ player, run, cards }) {
       if (!pool || pool.length === 0) continue;
 
       const card = pool[Math.floor(Math.random() * pool.length)];
-
-      inventory.push(card);
+      const price = shopPrice(card);
+      inventory.push({ card, price });
     }
 
+    // Filter any undefined slots (from continue skips)
+    const result = inventory.filter((item) => item && item.card);
+
     console.log(
-      `Shop inventory generated for Act ${act}: ${inventory
-        .map((c) => `${c.name} [${c.tier}]`)
+      `Shop inventory generated for Act ${act}: ${result
+        .map((item) => `${item.card.name} [${item.card.tier}]`)
         .join(", ")}`,
     );
 
-    return inventory;
+    return result;
   }
 
   function shopPrice(card) {
@@ -97,8 +91,14 @@ function createShopSystem({ player, run, cards }) {
       console.log("Already sold.");
       return false;
     }
-    if (!spendMarrow(item.price)) return false;
+    if (player.marrow < item.price) {
+      console.log(
+        `Not enough Marrow. Have: ${player.marrow}, need: ${item.price}`,
+      );
+      return false;
+    }
 
+    player.marrow -= item.price;
     item.sold = true;
     run.collection.push(item.card);
     console.log(
@@ -107,11 +107,14 @@ function createShopSystem({ player, run, cards }) {
     return true;
   }
 
-  function refreshShop() {
-    if (!spendMarrow(shop.refreshCost)) return;
-    shop.inventory = generateShopInventory();
-    console.log("Shop refreshed.");
-    openShop();
+  function refreshShop(act = 1) {
+    if (player.marrow < shop.refreshCost) {
+      console.log(`Not enough Marrow to refresh. Need: ${shop.refreshCost}`);
+      return;
+    }
+    player.marrow -= shop.refreshCost;
+    console.log(`Spent ${shop.refreshCost} Marrow to refresh shop.`);
+    openShop(act);
   }
 
   return { openShop, generateShopInventory, shopPrice, buyCard, refreshShop };

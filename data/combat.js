@@ -1,4 +1,4 @@
-const { createCostSystem } = require("./status-effects.js");
+// data/combat.js
 
 function createCombatSystem({ player, encounter, onEndRun }) {
   function endRun(reason) {
@@ -31,7 +31,7 @@ function createCombatSystem({ player, encounter, onEndRun }) {
 
     if (enemy.hp <= 0) {
       console.log(`${enemy.name} defeated.`);
-      handleEnemyDeath(enemy);
+      handleEnemyDeath(enemy, damage);
     }
   }
 
@@ -74,10 +74,11 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     if (player.hp <= 0) endRun("hp-depleted");
   }
 
-  function handleEnemyDeath(deadEnemy) {
-    if (!deadEnemy || damageDealt <= 0 || !deadEnemy.effect) return;
+  // Fires when an enemy takes damage but is still alive (e.g. Rage triggers).
+  function handleEnemyDamaged(enemy, damageDealt) {
+    if (!enemy || damageDealt <= 0 || !enemy.effect) return;
 
-    const text = deadEnemy.effect;
+    const text = enemy.effect;
 
     // Vein Sentinel: "Rage: gains +1 attack each time it takes damage."
     if (text.startsWith("Rage: gains +1 attack each time it takes damage")) {
@@ -86,13 +87,19 @@ function createCombatSystem({ player, encounter, onEndRun }) {
         `${enemy.name} enrages and gains +1 attack (now ${enemy.attack}).`,
       );
     }
+  }
+
+  // Fires when an enemy's HP reaches 0 or below.
+  function handleEnemyDeath(deadEnemy, damageDealt) {
+    if (!deadEnemy || !deadEnemy.effect) return;
+
+    const text = deadEnemy.effect;
 
     // Hollow Thrall: "On death: heals the next enemy in the encounter for 2 HP."
     if (text.startsWith("On death: heals the next enemy")) {
       const index = encounter.enemies.findIndex((e) => e.id === deadEnemy.id);
       if (index === -1) return;
 
-      // "Next enemy" = the next one in encounter.enemies that is still alive
       for (let i = index + 1; i < encounter.enemies.length; i++) {
         const target = encounter.enemies[i];
         if (target.hp > 0) {
@@ -108,19 +115,13 @@ function createCombatSystem({ player, encounter, onEndRun }) {
         }
       }
 
-      // If no later enemy is alive, no effect fires.
       console.log(`${deadEnemy.name} death effect: no valid target to heal.`);
     }
 
     // Future: additional on-death patterns can be added here.
   }
 
-  function endRun(reason) {
-    console.log(`Run ended. Reason: ${reason}`);
-    if (this.onEndRun) this.onEndRun(reason);
-  }
-
-  return { attackEnemy, enemyAttack, handleEnemyDeath, endRun };
+  return { attackEnemy, enemyAttack, handleEnemyDamaged, handleEnemyDeath };
 }
 
 module.exports = { createCombatSystem };

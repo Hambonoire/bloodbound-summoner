@@ -147,7 +147,10 @@ function createCostSystem({ player, onEndRun }) {
     payCost,
     dealSelfDamage,
     gainBlood,
+    addBlood,
+    drainBlood,
     spendBlood,
+    applyBleedToPlayer,
     updatePainZone,
     resetMilestones: () => triggeredMilestones.clear(),
   };
