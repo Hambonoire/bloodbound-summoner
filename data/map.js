@@ -113,7 +113,7 @@ function createMapSystem() {
         title: "The Warden's Gate",
         completed: false,
         locked: true,
-        requiredArtifacts: ["artifact_01"],
+        requiredArtifacts: [], // will eventually add an player archetype based artifact
         connections: ["node_12"],
         secret: null,
       },
