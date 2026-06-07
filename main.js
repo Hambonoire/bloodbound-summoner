@@ -84,7 +84,12 @@ const deckSystem = createDeckSystem({
 
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 const shopSystem = createShopSystem({ player, run, cards, shop });
-const economySystem = createEconomySystem({ player, run, cards });
+const economySystem = createEconomySystem({
+  player,
+  run,
+  cards,
+  drawRandom: deckSystem.drawRandom,
+});
 
 function startRun(startingArchetype) {
   // Reset run-scoped state on the existing object

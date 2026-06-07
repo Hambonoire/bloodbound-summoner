@@ -1,4 +1,4 @@
-function createEconomySystem({ player, run, cards }) {
+function createEconomySystem({ player, run, cards, drawRandom }) {
   function earnMarrow(amount) {
     player.marrow += amount;
     console.log(`Earned ${amount} Marrow | Marrow: ${player.marrow}`);
