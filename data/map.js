@@ -183,6 +183,9 @@ function createMapSystem() {
       case "gatekeeper":
         resolveGatekeeper(node);
         break;
+      case "shop":
+        resolveShop(node);
+        break;
       default:
         console.log(`No resolver for node type: ${node.type}`);
     }
