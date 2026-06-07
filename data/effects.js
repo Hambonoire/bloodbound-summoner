@@ -7,6 +7,8 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
         return applyBloodlettingRite(card);
       case "ub_sacrifice_01":
         return applyBoneHarvest(card);
+      case "bf-drain_01":
+        return applySanguineSiphon(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -51,6 +53,42 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
     console.log(
       `[Effect] ${card.name}: No Bone Shard found in deck or discard to summon.`,
     );
+  }
+
+  function applySanguineSiphon(card) {
+    // Target: first living enemy (player-choice deferred)
+    const target =
+      encounter && encounter.enemies
+        ? encounter.enemies.find((e) => e.hp > 0)
+        : null;
+
+    if (!target) {
+      console.log(`[Effect] ${card.name}: No valid target.`);
+      return;
+    }
+
+    // Deal 3 damage to target
+    const dmg = 3;
+    target.hp -= dmg;
+    console.log(
+      `[Effect] ${card.name}: Drained ${dmg} HP from ${target.name}. Enemy HP: ${target.hp}`,
+    );
+
+    // Heal player 3 HP, capped at maxHp
+    const prevHp = player.hp;
+    player.hp = Math.min(player.hp + dmg, player.maxHp);
+    const healed = player.hp - prevHp;
+    console.log(
+      `[Effect] ${card.name}: Healed ${healed} HP. Player HP: ${player.hp}/${player.maxHp}`,
+    );
+
+    // Gain 1 Blood
+    costSystem.gainBlood(1);
+    console.log(
+      `[Effect] ${card.name}: Gained 1 Blood. Blood: ${player.blood}`,
+    );
+
+    // TODO: if drain damage would overflow (enemy hp drops below 0), apply overflow as self-damage → Pain
   }
 
   return {
