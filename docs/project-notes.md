@@ -230,3 +230,38 @@ Systems implemented:
     - Define boss loot table contents (unique card? artifact? both?)
     - Sketch Act 2 node map structure (can mirror Act 1 shape initially)
     - Output: updated game-design.md sections for Run Structure and Node Types; updated map.js Act 2 stub
+49. Rebuild `act1Map` node array in `data/map.js` — 15-node layout with named
+    branching identities (Branch A: ritual/self-damage, Branch B: combat,
+    Branch C/E: NPC/scavenger, Branch D/F: combat, act-end combat mystery nodes,
+    Gatekeeper, Boss). Replace current 12-node hardcoded map.
+
+50. Add `resolveNPC()` handler in `data/map.js` — resolves Wanderer nodes;
+    advances hint chain via `run.discoveredHints`, logs NPC name/flavor, grants
+    small Marrow reward. Add `case "npc"` to `resolveNode()` switch.
+
+51. Add `resolveCombatMystery()` handler in `data/map.js` — rolls enemy
+    composition at resolve time from a curated elite/unusual pool rather than
+    fixed IDs; routes into existing `resolveCombatNode()`. Add
+    `case "combat_mystery"` to `resolveNode()` switch.
+
+52. Update `resolveGatekeeper()` in `data/map.js` — dual role: (1) check
+    `run.artifacts` for player archetype seal (`artifact_blood_seal` or
+    `artifact_bone_seal`), (2) seed `run.discoveredHints` with `hint_01` if
+    not already present. Gate only opens when seal check passes.
+
+53. Add `checkHintChain()` helper in `data/map.js` — called after any NPC or
+    Wanderer node completes; unlocks the Hidden Secret node once both `hint_01`
+    and `hint_02` are present in `run.discoveredHints`.
+
+54. Add `artifact_blood_seal` and `artifact_bone_seal` to `data/artifacts.js`
+    as data entries. Wire boss-kill grant in `main.js`: Act 1 boss death drops
+    the player's archetype seal into `run.artifacts`.
+
+55. Stub Act 2 map in `data/map.js` — mirror Act 1's 15-node shape with
+    placeholder enemy IDs, adjusted node titles, and a comment flagging it for
+    stat/enemy tuning. No new node types or resolvers needed yet.
+
+56. Update `docs/game-design.md` — add Wanderer (NPC) and Combat Mystery to
+    the Node Types table; update Run Structure section with node count (15),
+    type ratio, act-clear condition, and boss loot table contents; add Hidden
+    Secret scavenger hunt flow description.
