@@ -59,8 +59,6 @@ const shop = {
   refreshCost: 3,
 };
 
-const enemySystem = createEnemySystem();
-
 const encounter = {
   enemies: [],
   turn: 0,
@@ -69,11 +67,20 @@ const encounter = {
 
 const costSystem = createCostSystem({ player, onEndRun: endRun });
 
+const combatSystem = createCombatSystem({
+  player,
+  encounter,
+  onEndRun: endRun,
+});
+
+const enemySystem = createEnemySystem();
+
 const effectSystem = createEffectSystem({
   player,
   run,
   encounter,
   costSystem,
+  combatSystem,
 });
 
 const deckSystem = createDeckSystem({
@@ -84,8 +91,8 @@ const deckSystem = createDeckSystem({
   effectSystem,
 });
 
-const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
 const shopSystem = createShopSystem({ player, run, cards, shop });
+
 const economySystem = createEconomySystem({
   player,
   run,
@@ -315,7 +322,7 @@ function executeEnemyIntent(enemy) {
 
   switch (intent) {
     case "attack":
-      combat.enemyAttack(enemy);
+      combatSystem.enemyAttack(enemy);
       if (
         enemy.effect &&
         enemy.effect.startsWith("On attack: applies Bleed to the player")
@@ -339,7 +346,7 @@ function executeEnemyIntent(enemy) {
       console.log(
         `${enemy.name} hesitates. Unknown intent: ${intent}. Defaulting to attack.`,
       );
-      combat.enemyAttack(enemy);
+      combatSystem.enemyAttack(enemy);
       break;
   }
 }

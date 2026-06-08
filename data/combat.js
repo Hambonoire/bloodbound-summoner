@@ -1,16 +1,14 @@
-// data/combat.js
-
 function createCombatSystem({ player, encounter, onEndRun }) {
   function endRun(reason) {
     if (onEndRun) onEndRun(reason);
   }
 
-  function attackEnemy(enemyId, attackerCard) {
-    const enemy = encounter.enemies.find((e) => e.id === enemyId);
+  // Shared helper: apply damage to an enemy, respecting armor,
+  // and fire handleEnemyDamaged / handleEnemyDeath as appropriate.
+  function damageEnemy(enemy, amount) {
     if (!enemy || enemy.hp <= 0) return;
 
-    const totalAttack = attackerCard.attack + player.summonAttackBonus;
-    let damage = totalAttack;
+    let damage = amount;
 
     if (enemy.armor > 0) {
       const absorbed = Math.min(enemy.armor, damage);
@@ -22,11 +20,8 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     }
 
     enemy.hp -= damage;
-    console.log(
-      `${attackerCard.name} attacks ${enemy.name} for ${damage}. Enemy HP: ${enemy.hp}`,
-    );
+    console.log(`${enemy.name} takes ${damage} damage. Enemy HP: ${enemy.hp}`);
 
-    // Damage-triggered effects (e.g., Vein Sentinel rage)
     handleEnemyDamaged(enemy, damage);
 
     if (enemy.hp <= 0) {
@@ -35,8 +30,17 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     }
   }
 
-  // Shared helper: "Deals +1 damage per 5 HP the player is missing."
-  // Used by grunt_02, elite_01, boss_01.
+  function attackEnemy(enemyId, attackerCard) {
+    const enemy = encounter.enemies.find((e) => e.id === enemyId);
+    if (!enemy || enemy.hp <= 0) return;
+
+    const totalAttack = attackerCard.attack + player.summonAttackBonus;
+    console.log(
+      `${attackerCard.name} attacks ${enemy.name} for ${totalAttack}.`,
+    );
+    damageEnemy(enemy, totalAttack);
+  }
+
   function scaledDamageByMissingHp(enemy) {
     const missingHp = player.maxHp - player.hp;
     const bonus = Math.floor(missingHp / 5);
@@ -51,7 +55,6 @@ function createCombatSystem({ player, encounter, onEndRun }) {
         ? scaledDamageByMissingHp(enemy)
         : enemy.attack;
 
-    // find the highest defense summon on the field
     if (player.field.length > 0) {
       const blocker = player.field.reduce(
         (best, s) => (s.defense > best.defense ? s : best),
@@ -65,19 +68,21 @@ function createCombatSystem({ player, encounter, onEndRun }) {
 
       if (overflow > 0) {
         console.log(`Overflow damage: ${overflow} hits player directly.`);
+        // Intentional: enemy overflow damage hits player.hp directly.
+        // Enemy damage bypasses Pain/Blood by design — only self-inflicted
+        // damage (dealSelfDamage) should trigger those systems.
         player.hp -= overflow;
         console.log(`Player HP: ${player.hp}`);
       } else {
         console.log(`Attack fully absorbed by ${blocker.name}.`);
       }
 
-      // destroy blocker if attack meets or exceeds its defense
       if (damage >= blocker.defense) {
         player.field = player.field.filter((s) => s.id !== blocker.id);
         console.log(`${blocker.name} destroyed.`);
       }
     } else {
-      // no summons — direct damage to player
+      // Intentional: same as above — direct player damage bypasses Pain/Blood.
       player.hp -= damage;
       console.log(
         `${enemy.name} attacks player directly for ${damage}. HP: ${player.hp}`,
@@ -87,13 +92,9 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     if (player.hp <= 0) endRun("hp-depleted");
   }
 
-  // Fires when an enemy takes damage but is still alive (e.g. Rage triggers).
   function handleEnemyDamaged(enemy, damageDealt) {
     if (!enemy || damageDealt <= 0 || !enemy.effect) return;
-
     const text = enemy.effect;
-
-    // Vein Sentinel: "Rage: gains +1 attack each time it takes damage."
     if (text.startsWith("Rage: gains +1 attack each time it takes damage")) {
       enemy.attack += 1;
       console.log(
@@ -102,17 +103,16 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     }
   }
 
-  // Fires when an enemy's HP reaches 0 or below.
   function handleEnemyDeath(deadEnemy, damageDealt) {
     if (!deadEnemy || !deadEnemy.effect) return;
-
     const text = deadEnemy.effect;
-
-    // Hollow Thrall: "On death: heals the next enemy in the encounter for 2 HP."
-    if (text.startsWith("On death: heals the next enemy")) {
+    if (
+      text.startsWith(
+        "On death: heals the next enemy in the encounter for 2 HP.",
+      )
+    ) {
       const index = encounter.enemies.findIndex((e) => e.id === deadEnemy.id);
       if (index === -1) return;
-
       for (let i = index + 1; i < encounter.enemies.length; i++) {
         const target = encounter.enemies[i];
         if (target.hp > 0) {
@@ -127,14 +127,17 @@ function createCombatSystem({ player, encounter, onEndRun }) {
           return;
         }
       }
-
       console.log(`${deadEnemy.name} death effect: no valid target to heal.`);
     }
-
-    // Future: additional on-death patterns can be added here.
   }
 
-  return { attackEnemy, enemyAttack, handleEnemyDamaged, handleEnemyDeath };
+  return {
+    attackEnemy,
+    enemyAttack,
+    handleEnemyDamaged,
+    handleEnemyDeath,
+    damageEnemy,
+  };
 }
 
 module.exports = { createCombatSystem };

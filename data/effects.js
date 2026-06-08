@@ -1,6 +1,12 @@
 const { MAX_FIELD_SIZE } = require("./cards");
 
-function createEffectSystem({ player, run, encounter, costSystem }) {
+function createEffectSystem({
+  player,
+  run,
+  encounter,
+  costSystem,
+  combatSystem,
+}) {
   function applyCardEffect(card) {
     if (!card || !card.id) return;
 
@@ -9,7 +15,7 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
         return applyBloodlettingRite(card);
       case "ub_sacrifice_01":
         return applyBoneHarvest(card);
-      case "bf-drain_01":
+      case "bf_drain_01":
         return applySanguineSiphon(card);
       case "generic_relic_01":
         return applyBloodboundSigil(card);
@@ -70,7 +76,6 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
   }
 
   function applySanguineSiphon(card) {
-    // Target: first living enemy (player-choice deferred)
     const target =
       encounter && encounter.enemies
         ? encounter.enemies.find((e) => e.hp > 0)
@@ -81,12 +86,11 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
       return;
     }
 
-    // Deal 3 damage to target
     const dmg = 3;
-    target.hp -= dmg;
-    console.log(
-      `[Effect] ${card.name}: Drained ${dmg} HP from ${target.name}. Enemy HP: ${target.hp}`,
-    );
+    // Use combatSystem.damageEnemy so armor is respected and
+    // handleEnemyDeath fires correctly if the drain kills the enemy.
+    combatSystem.damageEnemy(target, dmg);
+    console.log(`[Effect] ${card.name}: Drained ${dmg} from ${target.name}.`);
 
     // Heal player 3 HP, capped at maxHp
     const prevHp = player.hp;
@@ -102,7 +106,7 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
       `[Effect] ${card.name}: Gained 1 Blood. Blood: ${player.blood}`,
     );
 
-    // TODO: if drain damage would overflow (enemy hp drops below 0), apply overflow as self-damage → Pain
+    // TODO: apply overflow (enemy hp < 0 after drain) as self-damage → Pain
   }
 
   function applyBloodboundSigil(card) {
