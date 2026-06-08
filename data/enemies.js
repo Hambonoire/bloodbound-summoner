@@ -37,6 +37,24 @@ const enemies = [
     armor: 0,
     intent: "attack",
     effect: "On death: heals the next enemy in the encounter for 2 HP.",
+    onDeath(self, damageDealt, { encounter }) {
+      const index = encounter.enemies.findIndex((e) => e.id === self.id);
+      if (index === -1) return;
+      for (let i = index + 1; i < encounter.enemies.length; i++) {
+        const target = encounter.enemies[i];
+        if (target.hp > 0) {
+          const prev = target.hp;
+          target.hp = Math.min(target.hp + 2, target.maxHp || target.hp + 2);
+          const healed = target.hp - prev;
+          if (healed > 0)
+            console.log(
+              `${self.name} death effect: ${target.name} heals ${healed} HP (now ${target.hp}).`,
+            );
+          return;
+        }
+      }
+      console.log(`${self.name} death effect: no valid target to heal.`);
+    },
   },
 
   // --- SOLDIERS ---
@@ -78,6 +96,12 @@ const enemies = [
     armor: 2,
     intent: "attack",
     effect: "Rage: gains +1 attack each time it takes damage.",
+    onDamaged(self, damageDealt) {
+      self.attack += 1;
+      console.log(
+        `${self.name} enrages and gains +1 attack (now ${self.attack}).`,
+      );
+    },
   },
   // --- ELITES ---
 
@@ -145,6 +169,26 @@ const enemies = [
     intentWeights: { attack: 5, block: 2, heal: 1 },
     effect:
       "Whenever it kills a summon, summons a Shambling Corpse to the encounter. At 50% and 25% HP thresholds, heals 6 HP and gains +2 armor.",
+  },
+  onDamaged(self) {
+    if (!self.thresholdsFired) self.thresholdsFired = new Set();
+    const pct = self.hp / self.maxHp;
+    for (const t of [{ key: "50", pct: 0.5 }, { key: "25", pct: 0.25 }]) {
+      if (pct <= t.pct && !self.thresholdsFired.has(t.key)) {
+      self.thresholdsFired.add(t.key);
+      self.hp = Math.min(self.hp + 6, self.maxHp);
+      self.armor += 2;
+      console.log(`[Grave Tyrant] ${t.key}% threshold: healed to ${self.hp} HP, armor now ${self.armor}.`);
+      }
+    }
+  },
+  onSummonKilled(self, { encounter, getEnemyById }) {
+    const corpse = getEnemyById("grunt_01");
+    if (!corpse) return;
+    corpse.id = `grunt_01_spawn_${Date.now()}`;
+    corpse.intentIndex = 0;
+    encounter.enemies.push(corpse);
+    console.log(`[Grave Tyrant] Spawned ${corpse.name} (${corpse.id}).`);
   },
 ];
 

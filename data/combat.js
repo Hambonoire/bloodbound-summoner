@@ -95,84 +95,21 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
   }
 
   function handleEnemyDamaged(enemy, damageDealt) {
-    if (!enemy || damageDealt <= 0 || !enemy.effect) return;
-    const text = enemy.effect;
-    if (text.startsWith("Rage: gains +1 attack each time it takes damage")) {
-      enemy.attack += 1;
-      console.log(
-        `${enemy.name} enrages and gains +1 attack (now ${enemy.attack}).`,
-      );
-    }
-    // Grave Tyrant: heal + armor at 50% and 25% HP thresholds (once per threshold).
-    if (
-      text.startsWith("Whenever it kills a summon, summons a Shambling Corpse")
-    ) {
-      if (!enemy.thresholdsFired) enemy.thresholdsFired = new Set();
-
-      const pct = enemy.hp / enemy.maxHp;
-      const thresholds = [
-        { key: "50", pct: 0.5 },
-        { key: "25", pct: 0.25 },
-      ];
-
-      for (const t of thresholds) {
-        if (pct <= t.pct && !enemy.thresholdsFired.has(t.key)) {
-          enemy.thresholdsFired.add(t.key);
-          enemy.hp = Math.min(enemy.hp + 6, enemy.maxHp);
-          enemy.armor += 2;
-          console.log(
-            `[Grave Tyrant] ${t.key}% threshold: healed to ${enemy.hp} HP, armor now ${enemy.armor}.`,
-          );
-        }
-      }
-    }
+    if (!enemy || damageDealt <= 0) return;
+    if (enemy.onDamaged)
+      enemy.onDamaged(enemy, damageDealt, { encounter, getEnemyById });
   }
 
   function handleEnemyDeath(deadEnemy, damageDealt) {
-    if (!deadEnemy || !deadEnemy.effect) return;
-    const text = deadEnemy.effect;
-    if (
-      text.startsWith(
-        "On death: heals the next enemy in the encounter for 2 HP.",
-      )
-    ) {
-      const index = encounter.enemies.findIndex((e) => e.id === deadEnemy.id);
-      if (index === -1) return;
-      for (let i = index + 1; i < encounter.enemies.length; i++) {
-        const target = encounter.enemies[i];
-        if (target.hp > 0) {
-          const prev = target.hp;
-          target.hp = Math.min(target.hp + 2, target.maxHp || target.hp + 2);
-          const healed = target.hp - prev;
-          if (healed > 0) {
-            console.log(
-              `${deadEnemy.name} death effect: ${target.name} heals ${healed} HP (now ${target.hp}).`,
-            );
-          }
-          return;
-        }
-      }
-      console.log(`${deadEnemy.name} death effect: no valid target to heal.`);
-    }
+    if (!deadEnemy) return;
+    if (deadEnemy.onDeath)
+      deadEnemy.onDeath(deadEnemy, damageDealt, { encounter, getEnemyById });
   }
 
   function handleSummonKilled(killerEnemy) {
-    if (!killerEnemy || !killerEnemy.effect) return;
-    if (
-      !killerEnemy.effect.startsWith(
-        "Whenever it kills a summon, summons a Shambling Corpse",
-      )
-    )
-      return;
-
-    const corpse = getEnemyById("grunt_01");
-    if (!corpse) return;
-
-    // Give the spawned enemy a unique instance id so it can be targeted individually
-    corpse.id = `grunt_01_spawn_${Date.now()}`;
-    corpse.intentIndex = 0;
-    encounter.enemies.push(corpse);
-    console.log(`[Grave Tyrant] Spawned ${corpse.name} (${corpse.id}).`);
+    if (!killerEnemy) return;
+    if (killerEnemy.onSummonKilled)
+      killerEnemy.onSummonKilled(killerEnemy, { encounter, getEnemyById });
   }
 
   return {
