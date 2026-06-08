@@ -35,8 +35,21 @@ function createCombatSystem({ player, encounter, onEndRun }) {
     }
   }
 
+  // Shared helper: "Deals +1 damage per 5 HP the player is missing."
+  // Used by grunt_02, elite_01, boss_01.
+  function scaledDamageByMissingHp(enemy) {
+    const missingHp = player.maxHp - player.hp;
+    const bonus = Math.floor(missingHp / 5);
+    return enemy.attack + bonus;
+  }
+
   function enemyAttack(enemy) {
-    let damage = enemy.attack;
+    const scalingEffect =
+      "Deals +1 damage for every 5 HP the player is missing";
+    let damage =
+      enemy.effect && enemy.effect.includes(scalingEffect)
+        ? scaledDamageByMissingHp(enemy)
+        : enemy.attack;
 
     // find the highest defense summon on the field
     if (player.field.length > 0) {
