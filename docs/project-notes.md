@@ -65,7 +65,6 @@ Systems implemented:
 - Starting deck composition — which cards does the player begin a run with?
 - What is the intended baseline battlefield summon cap, and should relics/cards be able to raise it temporarily or permanently?
 - Should duplicate relics stack their passive effects (e.g., two `generic_relic_01` copies → `maxBlood +4`)? Currently blocked by duplicate guard in `applyBloodboundSigil`.
-- How many nodes per act, and what is the rough ratio of node types?
 
 ---
 
@@ -133,35 +132,15 @@ Systems implemented:
 - `resolveCurse()` and `resolveMystery()` draw from the shared `data/curses.js` pool via `drawRandomCurses(1)`.
 - `resolveMystery()` reuses `rollMarrow()` to generate self-damage amounts; intentional.
 - Curse nodes draw from `data/curses.js`, store curse `id` in `run.curses`, and log name/effect. `logRunCurses()` resolves IDs for a one-line debug summary.
-- `resolveNPC()` calls `checkHintChain()` on every completion — safe since it only acts when both hint IDs are present. If hint IDs ever change, update the string literals in `checkHintChain()` to match node npc.hintId values.
-- NPC nodes complete normally via `completeNode()` — they unlock their
-  connections immediately. node_11 (Hidden Secret) is a second unlock that fires only when the full chain is satisfied.
-- `resolveCombatMystery()` rolls enemy composition at resolve time and writes it back to `node.enemies` so `checkEncounterEnd()` can mark the node complete via the standard combat win path. No special casing needed in `main.js`.
-- Mystery pool weights are hardcoded for Act 1. When Act 2 is built, pass`node.act` or `run.act` into a pool selector so the pool scales with act difficulty.
-- Elite solo (`elite_01`, `elite_02`) entries are weighted lower (2) than soldier pairs (3) — act-end nodes should feel hard but not always punishing. Tune after playtesting.
-- `resolveGatekeeper()` derives the required seal from `run.archetype` at resolve time via `sealMap`. If new archetypes are added, extend `sealMap` and add their seal IDs to `data/artifacts.js`.
-- `hint_01` seeds on first Gatekeeper contact (blocked or open) — this is intentional. Players who path straight to the gate get the hunt cue before backtracking. Players who took NPC branches already have hint_02/hint_03 but not hint_01 until they reach the gate.
-- The gate remains permanently blocked until `artifact_blood_seal` or
-  `artifact_bone_seal` is in `run.artifacts`. This is wired in Task 54.
-- `run.act` added to run state in `main.js`. Must be incremented when act progression is wired (Task 55 / post-boss transition logic).
-- Boss seal grant uses `run.act === 1` guard — Acts 2 and 3 bosses drop
-  different loot (second rare card slot). Update the guard when act 2+ boss loot is defined.
-- `getArtifactById` is re-required inside `checkEncounterEnd()` for the seal name lookup. If this causes any module caching concern, hoist the import to the top of `main.js` alongside the existing artifacts require.
-- Act 2 map stubbed in `data/map.js`. All node types and branching connections are final — only enemy IDs, titles, and NPC dialogue need tuning before Act 2 goes live.
-- `checkHintChain()` currently only checks Act 1 hint IDs (hint_02, hint_03). Extend it with an act-aware check (keyed on `run.act`) when Act 2 is activated, adding a2_hint_02 + a2_hint_03 → unlock a2_node_11.
-- Act 2 Gatekeeper (`a2_node_13`) has empty `requiredArtifacts` — define
-  the Act 2 gate artifact and wire its grant to the Act 2 boss kill.
-- `resolveCombatMystery()` mystery pool is currently Act 1 only. Add an
-  act-keyed pool selector when Act 2 enemies are defined.
-- `getNode()` and `resolveNode()` currently only search `act1Map.nodes`.
-  When Act 2 is activated, wire a map selector in `main.js` that passes
-  the correct map to `mapSystem` based on `run.act`.
-- `resolveNPC()` resolves Wanderer nodes; advances `run.discoveredHints`, logs dialogue, grants Marrow. NPC data lives on the node object (`node.npc`).
-- `resolveCombatMystery()` rolls enemy composition at resolve time from a weighted pool; writes result back to `node.enemies` for `checkEncounterEnd()` compat. Pool is Act 1 only — extend with act-keyed selector when Act 2 enemies are defined.
-- `checkHintChain()` checks for hint_02 + hint_03 and unlocks `node_11`. Extend with act-aware hint IDs when Act 2 is activated.
-- `resolveGatekeeper()` derives required seal from `run.archetype` via `sealMap` at resolve time. Extend `sealMap` if new archetypes are added.
-- Act 2 map stubbed with placeholder enemy IDs and TODO-flagged titles. `getNode()` and `resolveNode()` currently only search `act1Map.nodes` — wire a map selector keyed on `run.act` when Act 2 is activated.
-- `resolveCombatMystery()` Act 2 pool: add act-keyed pool selector once Act 2 enemy IDs are defined.
+- `resolveNPC()` resolves Wanderer nodes; advances `run.discoveredHints` via `npc.hintId`, logs NPC name/dialogue, grants small Marrow reward. NPC data lives on the node object (`node.npc`). Calls `checkHintChain()` on every completion — safe since it only acts when both hint IDs are present.
+- NPC nodes complete normally via `completeNode()` — they unlock their connections immediately. `node_11` (Hidden Secret) is a second unlock that fires only when the full chain is satisfied via `checkHintChain()`.
+- `resolveCombatMystery()` rolls enemy composition at resolve time from a weighted Act 1 pool; writes result back to `node.enemies` for `checkEncounterEnd()` compat. No special casing needed in `main.js`. Elite solo entries weighted lower (2) than soldier pairs (3) — tune after playtesting. When Act 2 is built, add an act-keyed pool selector via `run.act`.
+- `checkHintChain()` checks for `hint_02` + `hint_03` and unlocks `node_11`. If hint IDs ever change, update the string literals to match `node.npc.hintId` values. Extend with act-aware hint IDs (a2_hint_02 + a2_hint_03 → unlock a2_node_11) when Act 2 is activated.
+- `resolveGatekeeper()` derives the required seal from `run.archetype` at resolve time via `sealMap`. Seeds `hint_01` on first contact whether blocked or open — players who path straight to the gate get the hunt cue before backtracking. Extend `sealMap` and add seal IDs to `data/artifacts.js` if new archetypes are added.
+- The gate remains permanently blocked until the player's archetype seal is in `run.artifacts`. Seal is granted on Act 1 boss kill in `checkEncounterEnd()`.
+- `run.act` added to run state in `main.js`, initialized to 1 in `startRun()`. Must be incremented when act progression is wired (post-boss transition). Boss seal grant uses `run.act === 1` guard — update when Act 2+ boss loot is defined.
+- `getArtifactById` is re-required inside `checkEncounterEnd()` for the seal name lookup. If module caching becomes a concern, hoist the import to the top of `main.js`.
+- Act 2 map stubbed in `data/map.js`. Node types and branching connections are final — only enemy IDs, titles, and NPC dialogue need tuning. `getNode()` and `resolveNode()` currently only search `act1Map.nodes` — wire a map selector keyed on `run.act` in `main.js` when Act 2 is activated.
 - Act 2 Gatekeeper (`a2_node_13`) has empty `requiredArtifacts` — define the Act 2 gate artifact and wire its grant to the Act 2 boss kill.
 
 ### System init order (`main.js`)
