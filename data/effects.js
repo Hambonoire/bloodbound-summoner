@@ -1,3 +1,5 @@
+const { MAX_FIELD_SIZE } = require("./cards");
+
 function createEffectSystem({ player, run, encounter, costSystem }) {
   function applyCardEffect(card) {
     if (!card || !card.id) return;
@@ -35,21 +37,31 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
     let index = player.deck.findIndex((c) => c.id === targetId);
     if (index !== -1) {
       const shard = player.deck.splice(index, 1)[0];
+      if (player.field.length >= MAX_FIELD_SIZE) {
+        console.log(
+          `[Effect] ${card.name}: Field is full. ${shard.name} cannot be summoned.`,
+        );
+        return;
+      }
       player.field.push(shard);
       console.log(
         `[Effect] ${card.name}: Summoned ${shard.name} from deck. Field size: ${player.field.length}`,
       );
-      return;
     }
 
     index = player.discard.findIndex((c) => c.id === targetId);
     if (index !== -1) {
       const shard = player.discard.splice(index, 1)[0];
+      if (player.field.length >= MAX_FIELD_SIZE) {
+        console.log(
+          `[Effect] ${card.name}: Field is full. ${shard.name} cannot be summoned.`,
+        );
+        return;
+      }
       player.field.push(shard);
       console.log(
-        `[Effect] ${card.name}: Summoned ${shard.name} from discard. Field size: ${player.field.length}`,
+        `[Effect] ${card.name}: Summoned ${shard.name} from deck. Field size: ${player.field.length}`,
       );
-      return;
     }
 
     console.log(
