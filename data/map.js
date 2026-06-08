@@ -216,6 +216,211 @@ function createMapSystem({
       },
     ],
   };
+  // ── Act 2 Map ─────────────────────────────────────────────────────────────
+  // Mirrors Act 1's 15-node shape. Enemy IDs and titles are placeholders —
+  // tune stats, enemy composition, and flavor text before Act 2 goes live.
+  // Node types, branching structure, and resolver wiring are final.
+  const act2Map = {
+    act: 2,
+    currentNodeId: "a2_node_01",
+    nodes: [
+      // ── Entry ──────────────────────────────────────────────────────────────
+      {
+        id: "a2_node_01",
+        type: "combat",
+        title: "The Ashen Wastes", // TODO: rename to fit Act 2 tone
+        enemies: ["soldier_01", "grunt_02"], // TODO: replace with Act 2 enemies
+        completed: false,
+        locked: false,
+        connections: ["a2_node_02", "a2_node_03"],
+        secret: null,
+      },
+
+      // ── Branch A: Ritual / self-damage path ────────────────────────────────
+      {
+        id: "a2_node_02",
+        type: "ritual",
+        title: "The Sunken Altar", // TODO: rename
+        completed: false,
+        locked: true,
+        connections: ["a2_node_04"],
+        secret: null,
+      },
+
+      // ── Branch B: Combat path ──────────────────────────────────────────────
+      {
+        id: "a2_node_03",
+        type: "combat",
+        title: "The Ossuary Road", // TODO: rename
+        enemies: ["soldier_02", "soldier_01"], // TODO: replace
+        completed: false,
+        locked: true,
+        connections: ["a2_node_04"],
+        secret: null,
+      },
+
+      // ── Mid-act Shop ───────────────────────────────────────────────────────
+      {
+        id: "a2_node_04",
+        type: "shop",
+        title: "The Marrow Merchant",
+        completed: false,
+        locked: true,
+        connections: ["a2_node_05", "a2_node_06"],
+        secret: null,
+      },
+
+      // ── Branch C: NPC / scavenger path — hint chain step 1 ─────────────────
+      {
+        id: "a2_node_05",
+        type: "npc",
+        title: "The Pale Crossing", // TODO: rename
+        completed: false,
+        locked: true,
+        connections: ["a2_node_07"],
+        secret: null,
+        npc: {
+          id: "wanderer_03",
+          name: "The Flayed Scribe", // TODO: finalize NPC name + dialogue
+          dialogue:
+            "'These marks were not made by the living.' She doesn't look at you when she says it.",
+          hintId: "a2_hint_02",
+          hint: "The marks repeat. They mean something.",
+          marrowReward: 5,
+        },
+      },
+
+      // ── Branch D: Combat path (no NPC) ─────────────────────────────────────
+      {
+        id: "a2_node_06",
+        type: "combat",
+        title: "The Hollow March", // TODO: rename
+        enemies: ["elite_01", "grunt_01"], // TODO: replace with Act 2 enemies
+        completed: false,
+        locked: true,
+        connections: ["a2_node_07"],
+        secret: null,
+      },
+
+      // ── Curse node ─────────────────────────────────────────────────────────
+      {
+        id: "a2_node_07",
+        type: "curse",
+        title: "The Second Altar", // TODO: rename
+        completed: false,
+        locked: true,
+        connections: ["a2_node_08"],
+        secret: null,
+      },
+
+      // ── Rest node ──────────────────────────────────────────────────────────
+      {
+        id: "a2_node_08",
+        type: "rest",
+        title: "The Ember Pit", // TODO: rename
+        completed: false,
+        locked: true,
+        connections: ["a2_node_09", "a2_node_10"],
+        secret: null,
+      },
+
+      // ── Branch E: NPC / scavenger path — hint chain step 2 ─────────────────
+      {
+        id: "a2_node_09",
+        type: "npc",
+        title: "The Drowned Archive", // TODO: rename
+        completed: false,
+        locked: true,
+        connections: ["a2_node_11", "a2_node_13"],
+        secret: null,
+        npc: {
+          id: "wanderer_04",
+          name: "The Bound Archivist", // TODO: finalize NPC name + dialogue
+          dialogue:
+            "'You've seen the marks. Then you know what this place costs.' He hands you a fragment.",
+          hintId: "a2_hint_03",
+          hint: "The fragment is warm. It shouldn't be.",
+          marrowReward: 7,
+        },
+      },
+
+      // ── Branch F: Combat path (no NPC) ─────────────────────────────────────
+      {
+        id: "a2_node_10",
+        type: "combat",
+        title: "The Rot Gallery", // TODO: rename
+        enemies: ["elite_02", "grunt_03"], // TODO: replace with Act 2 enemies
+        completed: false,
+        locked: true,
+        connections: ["a2_node_13"],
+        secret: null,
+      },
+
+      // ── Hidden Secret ──────────────────────────────────────────────────────
+      // Unlocked by checkHintChain() — needs a2_hint_02 + a2_hint_03.
+      // checkHintChain() will need extending for Act 2 hint IDs (Task 55 TODO).
+      {
+        id: "a2_node_11",
+        type: "hidden_secret",
+        title: "???",
+        completed: false,
+        locked: true,
+        connections: ["a2_node_13"],
+        secret: {
+          discovered: false,
+          hintId: "a2_hint_secret",
+          hint: "The fragment fits the wall. The wall opens.",
+        },
+      },
+
+      // ── Act-end Combat Mystery #1 ───────────────────────────────────────────
+      {
+        id: "a2_node_12",
+        type: "combat_mystery",
+        title: "The Wailing Dark", // TODO: rename to distinguish from Act 1
+        completed: false,
+        locked: true,
+        connections: ["a2_node_13"],
+        secret: null,
+      },
+
+      // ── Gatekeeper ─────────────────────────────────────────────────────────
+      {
+        id: "a2_node_13",
+        type: "gatekeeper",
+        title: "The Second Gate", // TODO: rename
+        completed: false,
+        locked: true,
+        requiredArtifacts: [], // TODO: define Act 2 gate artifact
+        connections: ["a2_node_14"],
+        secret: null,
+      },
+
+      // ── Act-end Combat Mystery #2 ───────────────────────────────────────────
+      {
+        id: "a2_node_14",
+        type: "combat_mystery",
+        title: "The Threshold of Teeth", // TODO: rename to distinguish from Act 1
+        completed: false,
+        locked: true,
+        connections: ["a2_node_15"],
+        secret: null,
+      },
+
+      // ── Boss ────────────────────────────────────────────────────────────────
+      {
+        id: "a2_node_15",
+        type: "boss",
+        title: "TODO: Act 2 Boss Title",
+        enemies: ["boss_02"], // TODO: confirm or replace with Act 2 boss
+        completed: false,
+        locked: true,
+        connections: [],
+        secret: null,
+        isBoss: true,
+      },
+    ],
+  };
   function getNode(id) {
     return act1Map.nodes.find((n) => n.id === id);
   }
@@ -684,6 +889,7 @@ function createMapSystem({
   }
   return {
     act1Map,
+    act2Map,
     getNode,
     travelToNode,
     completeNode,
