@@ -1,4 +1,5 @@
-const { getEnemyById } = require("./enemies");
+const { createEnemySystem } = require("./enemies");
+const { getEnemyById } = createEnemySystem();
 const { curses, drawRandomCurses } = require("./curses");
 
 function createMapSystem({

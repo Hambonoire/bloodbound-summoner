@@ -148,13 +148,20 @@ const enemies = [
   },
 ];
 
-function getEnemyById(id) {
-  const enemy = enemies.find((e) => e.id === id);
-  if (!enemy) {
-    console.log(`Unknown enemy ID: ${id}`);
-    return null;
+function createEnemySystem() {
+  function getEnemyById(id) {
+    const enemy = enemies.find((e) => e.id === id);
+    if (!enemy) {
+      console.log(`Unknown enemy ID: ${id}`);
+      return null;
+    }
+    return enemy;
   }
-  return enemy;
+
+  return {
+    enemies,
+    getEnemyById,
+  };
 }
 
-module.exports = { enemies, getEnemyById };
+module.exports = { createEnemySystem };

@@ -2,7 +2,7 @@ console.log("Bloodbound Summoner prototype initialized.");
 
 const { createDeckSystem, STARTING_DECKS, cards } = require("./data/cards");
 const { createMapSystem } = require("./data/map");
-const { enemies } = require("./data/enemies");
+const { createEnemySystem } = require("./data/enemies");
 const { createCombatSystem } = require("./data/combat");
 const { createEconomySystem } = require("./data/economy");
 const { createCostSystem } = require("./data/status-effects");
@@ -57,6 +57,8 @@ const shop = {
   inventory: [],
   refreshCost: 3,
 };
+
+const enemySystem = createEnemySystem();
 
 const encounter = {
   enemies: [],
@@ -215,15 +217,6 @@ function startEncounter(enemyList) {
       .join(", ")} ---`,
   );
   onCombatStart(); // fire entry triggers
-}
-
-function getEnemyById(id) {
-  const enemy = enemies.find((e) => e.id === id);
-  if (!enemy) {
-    console.log(`Unknown enemy ID: ${id}`);
-    return null;
-  }
-  return enemy;
 }
 
 function playerTurn(card) {
