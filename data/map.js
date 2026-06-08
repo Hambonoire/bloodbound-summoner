@@ -1,5 +1,3 @@
-const { createEnemySystem } = require("./enemies");
-const { getEnemyById } = createEnemySystem();
 const { curses, drawRandomCurses } = require("./curses");
 
 function createMapSystem({
@@ -12,6 +10,7 @@ function createMapSystem({
   shop,
   startEncounter,
   drawRandom,
+  getEnemyById,
 }) {
   const act1Map = {
     act: 1,

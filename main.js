@@ -83,6 +83,15 @@ const deckSystem = createDeckSystem({
   effectSystem,
 });
 
+const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
+const shopSystem = createShopSystem({ player, run, cards, shop });
+const economySystem = createEconomySystem({
+  player,
+  run,
+  cards,
+  drawRandom: deckSystem.drawRandom,
+});
+
 const mapSystem = createMapSystem({
   player,
   run,
@@ -93,15 +102,7 @@ const mapSystem = createMapSystem({
   shop,
   startEncounter,
   drawRandom: deckSystem.drawRandom,
-});
-
-const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
-const shopSystem = createShopSystem({ player, run, cards, shop });
-const economySystem = createEconomySystem({
-  player,
-  run,
-  cards,
-  drawRandom: deckSystem.drawRandom,
+  getEnemyById: enemySystem.getEnemyById,
 });
 
 function startRun(startingArchetype) {
