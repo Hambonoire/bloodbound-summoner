@@ -19,6 +19,10 @@ function createEffectSystem({
         return applySanguineSiphon(card);
       case "generic_relic_01":
         return applyBloodboundSigil(card);
+      case "bf_champion_01":
+        return applyFleshbinder(card);
+      case "ub_champion_01":
+        return applyBonecageTitan(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -126,6 +130,27 @@ function createEffectSystem({
         `[Effect] ${card.name}: Already equipped — maxBlood boost skipped.`,
       );
     }
+  }
+
+  function applyFleshbinder(card) {
+    const count = player.field.length; // field before Fleshbinder enters
+    if (count === 0) {
+      console.log(`[Effect] ${card.name}: No summons on field — no healing.`);
+      return;
+    }
+    const heal = count * 2;
+    player.hp = Math.min(player.hp + heal, player.maxHp);
+    console.log(
+      `[Effect] ${card.name}: Healed ${heal} HP (${count} summon(s) on field). HP: ${player.hp}/${player.maxHp}`,
+    );
+  }
+
+  function applyBonecageTitan(card) {
+    // Flag this summon as an overflow absorber.
+    // enemyAttack() in combat.js checks player.field for this flag
+    // before routing overflow to the player.
+    card.absorbsOverflow = true;
+    console.log(`[Effect] ${card.name}: Overflow absorption active.`);
   }
 
   return {

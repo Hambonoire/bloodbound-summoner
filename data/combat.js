@@ -67,12 +67,40 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
       );
 
       if (overflow > 0) {
-        console.log(`Overflow damage: ${overflow} hits player directly.`);
-        // Intentional: enemy overflow damage hits player.hp directly.
-        // Enemy damage bypasses Pain/Blood by design — only self-inflicted
-        // damage (dealSelfDamage) should trigger those systems.
-        player.hp -= overflow;
-        console.log(`Player HP: ${player.hp}`);
+        // Check if any field summon absorbs overflow before it hits the player
+        const absorber = player.field.find(
+          (s) => s.absorbsOverflow && s.id !== blocker.id,
+        );
+
+        if (absorber) {
+          console.log(
+            `Overflow redirected to ${absorber.name} (absorbsOverflow).`,
+          );
+          const absorberOverflow = overflow - absorber.defense;
+          if (absorberOverflow > 0) {
+            player.field = player.field.filter((s) => s.id !== absorber.id);
+            console.log(`${absorber.name} destroyed absorbing overflow.`);
+            // Remaining overflow after absorber is destroyed hits player
+            player.hp -= absorberOverflow;
+            console.log(
+              `Residual overflow ${absorberOverflow} hits player. HP: ${player.hp}`,
+            );
+            if (player.hp <= 0) endRun("hp-depleted");
+          } else {
+            console.log(
+              `${absorber.name} fully absorbs overflow. DEF: ${absorber.defense}`,
+            );
+          }
+        } else {
+          // Intentional: enemy overflow damage hits player.hp directly.
+          // Enemy damage bypasses Pain/Blood by design — only self-inflicted
+          // damage (dealSelfDamage) should trigger those systems.
+          player.hp -= overflow;
+          console.log(
+            `Overflow damage: ${overflow} hits player directly. HP: ${player.hp}`,
+          );
+          if (player.hp <= 0) endRun("hp-depleted");
+        }
       } else {
         console.log(`Attack fully absorbed by ${blocker.name}.`);
       }
