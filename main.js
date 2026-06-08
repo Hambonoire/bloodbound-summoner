@@ -407,6 +407,20 @@ function checkEncounterEnd() {
         `. Total: ${totalMarrow}`,
     );
 
+    // Artifact: Bone Totem — add a random UB minion to collection on combat win
+    if (run.artifacts && run.artifacts.includes("artifact_bone_totem")) {
+      const ubMinions = cards.filter(
+        (c) => c.type === "minion" && c.tags && c.tags.includes("undead-bone"),
+      );
+      const reward = deckSystem.drawRandom(ubMinions);
+      if (reward) {
+        run.collection.push({ ...reward });
+        console.log(
+          `[Artifact] Bone Totem: added ${reward.name} to collection.`,
+        );
+      }
+    }
+
     // Pack rewards (for now, pass a simple archetype tag; adjust later)
     const packArchetype = run.archetype || "blood-flesh";
     const packOptions = economySystem.offerPackRewards(packArchetype);

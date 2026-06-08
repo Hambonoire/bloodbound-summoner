@@ -310,6 +310,25 @@ function createMapSystem({
 
     completeNode(node.id);
   }
+  function applyOnAcquireCurseEffect(curseId) {
+    if (curseId === "curse_fragile_blood") {
+      const reduction = 3;
+      player.maxHp = Math.max(1, player.maxHp - reduction);
+      // Clamp current HP to new max
+      player.hp = Math.min(player.hp, player.maxHp);
+      console.log(`[Curse] Fragile Blood: maxHp reduced to ${player.maxHp}.`);
+    }
+    if (curseId === "curse_brittle_bones") {
+      player.maxBlood = Math.max(5, player.maxBlood - 1);
+      // Clamp current Blood to new max
+      player.blood = Math.min(player.blood, player.maxBlood);
+      console.log(
+        `[Curse] Brittle Bones: maxBlood reduced to ${player.maxBlood}.`,
+      );
+    }
+    // curse_blood_debt and curse_clotted_pain have no on-acquire stat effect;
+    // blood_debt fires in onCombatStart(), clotted_pain is deferred.
+  }
   function resolveCurse(node) {
     // Player accepts a curse; receives a card reward in return.
     // Curses are strings for now — effect resolution is a future task.
@@ -322,6 +341,8 @@ function createMapSystem({
 
     run.curses = run.curses || [];
     run.curses.push(curse.id);
+
+    applyOnAcquireCurseEffect(curse.id);
 
     console.log(
       `You are afflicted with a curse: ${curse.name} — ${curse.effect}`,

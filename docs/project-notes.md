@@ -17,6 +17,11 @@ Systems implemented:
 - Act 1 node map structure (travel, unlock, secret discovery)
 - Match reset
 - Basic enemy on-death, damage-triggered, and attack-triggered behaviors
+- Enemy scaled damage helper (`scaledDamageByMissingHp`) wired into `enemyAttack()`
+- Combat-start entry hook (`onCombatStart`) for curses, artifacts, and relics
+- `generic_relic_01` passive logic: `player.relics` array, `maxBlood +2` on acquisition, 2 Blood on combat entry if Pain ≥ 10
+- All system factories use injected dependencies — no bare globals in node resolvers or factory internals
+- `enemySystem` (`createEnemySystem`) wraps enemy catalog with `getEnemyById`; injected into `createMapSystem`
 
 ---
 
@@ -47,6 +52,7 @@ Systems implemented:
 - Starting deck composition — which cards does the player begin a run with?
 - How many nodes per act, and what is the rough ratio of node types?
 - What is the intended baseline battlefield summon cap, and should relics/cards be able to raise it temporarily or permanently?
+- Should duplicate relics stack their passive effects (e.g., two `generic_relic_01` copies → `maxBlood +4`)? Currently blocked by duplicate guard in `applyBloodboundSigil`.
 
 ---
 
@@ -59,7 +65,6 @@ Systems implemented:
 - `ub_champion_01` (Bonecage Titan): "absorbs overflow damage" will need to flag specific summons as overflow-blocking and change damage routing in `enemyAttack()`.
 - `ub_apex_01` (The Hollow King): resurrection from discard will need a target-selection step (auto or player choice) that reads `player.discard`.
 - `apexLocked: true` is currently the only card-level playability gate; if more unlock conditions are added, consider a generic `requiresFlag` field instead of more booleans.
-- `applyBoneHarvest` in `data/effects.js` pushes directly to `player.field` without checking `MAX_FIELD_SIZE`. Add a guard before the push.
 - `discardCard` is called inside `playCard` after `payCost` runs. Verify that sacrifice in `payCost` removes from `player.field` (not `player.hand`) so `discardCard` still finds the played card. Add a targeted test when revisiting sacrifice handling.
 - `selectPack` in `data/economy.js` pushes card objects by reference into `run.collection`. Consider pushing copies (`{ ...card }`) to avoid shared-reference bugs if card state ever becomes mutable (curses, upgrades).
 
@@ -72,17 +77,19 @@ Systems implemented:
 - First-pass card effect resolution is wired through `data/effects.js` via `createEffectSystem({ player, run, encounter, costSystem })`.
 - `deckSystem.playCard()` resolves costs first through `costSystem.payCost(card)`, then card effects through `effectSystem.applyCardEffect(card)`, then performs normal post-play cleanup.
 - `bf_ritual_01` (Bloodletting Rite): resolves through `data/effects.js`; after HP self-damage cost is paid, grants bonus Blood through the effect system.
-- `ub_sacrifice_01` (Bone Harvest): resolves through `data/effects.js`; after sacrifice cost is paid, grants 2 Marrow and summons `ub_minion_01` (Bone Shard) from deck first, then discard.
+- `ub_sacrifice_01` (Bone Harvest): resolves through `data/effects.js`; after sacrifice cost is paid, grants 2 Marrow and summons `ub_minion_01` (Bone Shard) from deck first, then discard. Field cap guard (`MAX_FIELD_SIZE`) added before push.
 - `bf_drain_01` (Sanguine Siphon): handler added to `data/effects.js`. Deals 3 damage to first living enemy, heals player 3 HP (capped at `maxHp`), grants 1 Blood via `costSystem.gainBlood(1)`. Overflow-to-Pain and player-choice targeting are still deferred (marked with TODO in the handler).
-- `generic_relic_01` (Bloodbound Sigil): no passive logic wired yet. Raises `player.maxBlood` by 2 and grants 2 Blood on combat entry if Pain ≥ 10. Needs `player.relics` array and a combat-start entry hook (see combat-start hook note below).
+- `generic_relic_01` (Bloodbound Sigil): fully wired. Raises `player.maxBlood` by 2 on acquisition, registers to `player.relics`, and grants 2 Blood on combat entry if Pain ≥ 10 via `onCombatStart()`. Duplicate guard prevents double-stacking.
 - The effect system is still first-pass only; unhandled cards fall back to effect-text logging until dedicated handlers are added.
 - Champion/Apex effects (overflow absorption, resurrection, attack debuff), curse application, and complex enemy/card interactions still need dedicated handlers.
 
 ### Combat flow and targeting
 
-- **Refactor goal (architecture):** `combat.js` should only orchestrate flow (who attacks whom, win/loss checks). All effect calculus — damage, healing, Pain, Blood, armor math — should live in `status-effects.js` or `effects.js`. `combat.js` calls into those systems rather than performing its own stat math. Scope TBD; assess before the next combat-system pass.
+- **Refactor goal (architecture):** `combat.js` should only orchestrate flow (who attacks whom, win/loss checks). All effect calculus — damage, healing, Pain, Blood, armor math — should live in `status-effects.js` or `effects.js`. `combat.js` calls into those systems rather than performing its own stat math. Scope TBD; assess before the next combat-system pass. (Task 41)
 - `applySanguineSiphon` in `data/effects.js` hits `target.hp` directly and does not call `combatSystem.handleEnemyDeath` if drain kills an enemy. Fix: either inject `combatSystem` into `effectSystem`, or extract a shared `damageEnemy(target, amount)` helper that both systems call.
 - `enemyAttack()`: enemy overflow damage hits `player.hp` directly without calling `dealSelfDamage` — this is intentional (enemy damage does not trigger Pain/Blood). Add an explicit comment to make this self-documenting.
+- `scaledDamageByMissingHp()` is now wired in `enemyAttack()` via effect text check. Applies to `grunt_02`, `elite_01`, and `boss_01`.
+- Bleed (`applyBleedToPlayer`) fires in `executeEnemyIntent` for `soldier_02` via effect text string check. No change needed in `combat.js`.
 - Enemy intent selection supports simple cycles and weighted random via `intents` and `intentWeights`; conditional (state-based) intent logic is a future enhancement.
 - `enemyAttack()` auto-selects the highest-defense blocker; letting the player choose a defender is deferred until UI/input exist.
 - `attackEnemy()` must be called manually; there is no targeting layer yet.
@@ -96,7 +103,6 @@ Systems implemented:
 - `run.collection` holds all acquired cards; deck-building and match reset always rebuild `player.deck` from this collection.
 - `buildDeck()` requires `run.collection` to be populated; on a fresh run with an empty collection, calling `resetMatch()` deals an empty opening hand.
 - `resetMatch()` rebuilds the deck via `buildDeck()` and `dealOpeningHand()` from the full run card pool.
-- `startRun()` resets state and seeds the archetype starting deck into `run.collection` but does not currently reset `player.maxBlood` to its default (10). Add `player.maxBlood = 10;` to `startRun()` alongside the other stat resets.
 
 ### Run structure, archetypes, and multi-archetype support
 
@@ -108,49 +114,47 @@ Systems implemented:
 ### Map, node types, and per-node tuning
 
 - Act 1 map is hardcoded; procedural or semi-random generation is a later consideration once node and run structure are proven.
-- **`resolveShop` is defined in `data/map.js` but missing from the `switch` in `resolveNode`.** Shop map nodes silently fall through to the default log and do nothing. Add `case "shop": resolveShop(node); break;`.
-- **Node resolvers use bare globals** (`player`, `run`, `cards`, `shop`, `dealSelfDamage`, `updatePainZone`, `earnMarrow`, `rollMarrow`, `drawRandom`, `startEncounter`, `completeNode`). These are not injected into `createMapSystem` — resolvers work when called from `main.js` but cannot be unit-tested in isolation and will throw if called outside that scope. Requires a dependency-injection pass when the map system is next revisited.
+- `resolveShop` is now wired via `case "shop"` in `resolveNode`.
+- All node resolvers use injected dependencies via `createMapSystem` signature — no bare globals remain.
+- `getEnemyById` is injected into `createMapSystem` via `enemySystem.getEnemyById` from `main.js`; the module-level instance inside `map.js` has been removed.
 - `resolveRitual()`: HP cost (5) and card reward pool are hardcoded; once node data fields exist, both cost and reward tier should be data-driven.
 - `resolveRest()`: heal amount (8) and Pain drain (5) are hardcoded balance constants for playtesting.
 - `resolveCurse()` and `resolveMystery()` draw from the shared `data/curses.js` pool via `drawRandomCurses(1)`.
 - `resolveMystery()` reuses `rollMarrow()` to generate self-damage amounts; intentional.
-- **`resolveGatekeeper()` checks for `"artifact_01"`**, but no artifact with that ID exists in `data/artifacts.js` (current IDs: `artifact_blood_chalice`, `artifact_bone_totem`). Update `node_11`'s `requiredArtifacts` to a real catalog ID, or add `artifact_01` to the catalog.
+- `node_11` Gatekeeper `artifact_01` requirement has been cleared; update to a real catalog ID when artifact progression is scoped.
 - Curse nodes draw from `data/curses.js`, store curse `id` in `run.curses`, and log name/effect. `logRunCurses()` resolves IDs for a one-line debug summary.
+
+### System init order (`main.js`)
+
+- Correct instantiation order: `costSystem` → `effectSystem` → `deckSystem` → `combat` → `shopSystem` → `economySystem` → `mapSystem`.
+- `mapSystem` must be last — it depends on `shopSystem`, `economySystem`, and `deckSystem.drawRandom`.
+- `enemySystem` has no dependencies and can be instantiated any time before `mapSystem`.
 
 ### Rewards, Marrow, packs, and artifacts
 
 - Shop inventory supports act-aware tier weighting via `generateShopInventory(act)`. Act tracking on nodes/run will be refined as multi-act maps are implemented.
-- **`generatePackBonus` and `generatePack` in `data/economy.js` call `drawRandom` as a bare global** — not injected into the factory. Same class of issue as map.js node resolvers. Fix when testing economy in isolation.
-- **`createEconomySystem` is imported in `main.js` but never instantiated.** Add `const economySystem = createEconomySystem({ player, run, cards });` after the other system inits.
-- Artifact data lives in `data/artifacts.js` as data-only stubs. `run.artifacts` stores artifact IDs; `logRunArtifacts()` resolves and logs them. No artifact passive effects are wired into combat or map systems yet.
+- `drawRandom` is now injected into `createEconomySystem` — no bare global dependency remains.
+- Artifact data lives in `data/artifacts.js` as data-only stubs. `run.artifacts` stores artifact IDs; `logRunArtifacts()` resolves and logs them. On-win minion grant wired in checkEncounterEnd().
 - Boss/secret rewards and artifact-granting sources are not yet implemented; Gatekeeper and artifact-related progression are blocked on this.
 
 ### Combat-start entry hook
 
-- `curse_blood_debt` (lose 2 HP at combat start), `generic_relic_01` (gain 2 Blood at combat start if Pain ≥ 10), and `artifact_blood_chalice` (gain 2 Blood at combat start) all need the same entry-trigger pass. Build one shared combat-start hook in `main.js` or `combat.js` that fires active relics and curses when a combat begins.
-
-### Main.js wiring gap
-
-- **`main.js` runtime loop calls multiple bare globals** that are not defined or imported at the top level: `dealSelfDamage`, `playCard`, `earnMarrow`, `calculateMarrowReward`, `offerPackRewards`, `completeNode`, `applyBleedToPlayer`, `endTurnDiscardDownToLimit`. These need to route through the correct system instances:
-  - `costSystem.dealSelfDamage()`
-  - `deckSystem.playCard()`
-  - `economySystem.earnMarrow()`, `economySystem.calculateMarrowReward()`, `economySystem.offerPackRewards()`
-  - `mapSystem.completeNode()`
-  - `costSystem.applyBleedToPlayer()`
-  - `deckSystem.endTurnDiscardDownToLimit()`
-- This is the primary runtime wiring gap; the game loop will throw on any path that hits these calls.
+- `onCombatStart()` in `main.js` fires at the end of `startEncounter()`.
+- Handles: `curse_blood_debt` (−2 HP), `artifact_blood_chalice` (+2 Blood), `generic_relic_01` (+2 Blood if Pain ≥ 10).
+- Relic check is gated on `player.relics` — silently no-ops for relics not yet registered.
 
 ### Enemy effects (data-only, pending implementation)
 
-- `soldier_02` (Cursebrand Warrior): Bleed application on attack — `applyBleedToPlayer` exists and is exported from `status-effects.js` but is not called from `combat.js` when this enemy attacks.
+- `soldier_02` (Cursebrand Warrior): Bleed fires via `executeEnemyIntent` effect-text check. ✅
+- `grunt_02`, `elite_01`, `boss_01`: scaled damage wired via `scaledDamageByMissingHp()` in `enemyAttack()`. ✅
+- Rage (`vein_sentinel`): wired in `handleEnemyDamaged()`. ✅
 - `elite_02` (Bonecaller Adept): sacrifice/heal and on-kill damage bonus — no resolver.
 - `boss_01` (Bloodbound Butcher): self-wound buff at turn start — no resolver.
 - `boss_02` (Grave Tyrant): on-kill summon spawn and HP-threshold heal/armor — requires mid-encounter enemy spawning (`encounter.enemies.push()`) and a threshold tracker on the enemy object. Needs design before implementation.
-- `grunt_02`, `elite_01`, `boss_01` all share "deals +1 damage per 5 HP player is missing." Extract as a shared `scaledDamageByMissingHp(enemy, player)` helper when implementing to avoid three separate copies.
 
 ### Systems pinned to future work
 
-- Curse effect resolution: curses are data-only; effects like `curse_fragile_blood` (reduce `maxHp`) and `curse_brittle_bones` (reduce `maxBlood`) need to be applied at run/combat start and tracked for reversal.
+- `curse_fragile_blood` and `curse_brittle_bones` now apply on acquire in data/map.js; `curse_clotted_pain` (Pain-gain reduction) still deferred as it requires touching `dealSelfDamage`.
 - Artifact system: define effects in `data/artifacts.js` and wire into `run.artifacts`, Gatekeeper checks, and combat-start hook.
 - Conditional enemy behaviors, richer targeting, player choice for sacrifices/blocks/discards, and more flexible Broken/Pain run mechanics deferred to later UI and systems work.
 
@@ -204,16 +208,16 @@ Systems implemented:
 28. ✅ Run init hardening
 29. ✅ First-pass card effect system (Bloodletting Rite + Bone Harvest)
 30. ✅ Wire bf_drain_01 (Sanguine Siphon) handler through data/effects.js
-31. Fix `main.js` bare global wiring — route runtime calls through system instances (`costSystem`, `deckSystem`, `economySystem`, `mapSystem`)
-32. Instantiate `createEconomySystem` in `main.js`; add `player.maxBlood = 10` to `startRun()`
-33. Add `case "shop"` to `resolveNode()` switch in `data/map.js`
-34. Reconcile Gatekeeper artifact ID — update `node_11.requiredArtifacts` to a real catalog ID
-35. Inject `drawRandom` into `createEconomySystem` factory (remove bare global dependency)
-36. Inject dependencies into `createMapSystem` node resolvers (remove bare global dependencies)
-37. Build combat-start entry hook for relics, curses, and artifacts
-38. Wire `generic_relic_01` passive logic (`player.relics` array + combat-start hook)
-39. Add `applyBoneHarvest` `MAX_FIELD_SIZE` guard in `data/effects.js`
-40. First enemy-effect pass: Bleed (soldier_02), shared `scaledDamageByMissingHp` helper, Rage (already wired)
+31. ✅ Fix `main.js` bare global wiring — route runtime calls through system instances
+32. ✅ Instantiate `createEconomySystem`; add `player.maxBlood = 10` to `startRun()`
+33. ✅ Add `case "shop"` to `resolveNode()` switch in `data/map.js`
+34. ✅ Reconcile Gatekeeper artifact ID — cleared invalid `artifact_01` from `node_11`
+35. ✅ Inject `drawRandom` into `createEconomySystem` factory
+36. ✅ Inject dependencies into `createMapSystem`; move `getEnemyById` to `data/enemies.js`
+37. ✅ Build `onCombatStart()` entry hook for relics, curses, and artifacts
+38. ✅ Wire `generic_relic_01` passive logic (`player.relics`, `maxBlood +2`, combat-start Blood grant)
+39. ✅ Add `MAX_FIELD_SIZE` guard to `applyBoneHarvest` in `data/effects.js`
+40. ✅ First enemy-effect pass: Bleed (soldier_02), `scaledDamageByMissingHp` helper, Rage (already wired)
 41. Combat/effect architecture refactor: move all stat calculus out of `combat.js` into `status-effects.js`/`effects.js`
 42. Add shared artifact/curse foundation: wire `data/artifacts.js` and `data/curses.js` effects into run and combat lifecycle
 43. Boss_02 mid-encounter enemy spawning — design threshold tracker and `encounter.enemies.push()` support
