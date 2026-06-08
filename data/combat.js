@@ -104,6 +104,13 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
     if (!deadEnemy) return;
     if (deadEnemy.onDeath)
       deadEnemy.onDeath(deadEnemy, damageDealt, { encounter, getEnemyById });
+
+    // Notify surviving enemies that an ally died
+    for (const e of encounter.enemies) {
+      if (e.hp > 0 && e.id !== deadEnemy.id && e.onAllyDeath) {
+        e.onAllyDeath(e, deadEnemy, { encounter });
+      }
+    }
   }
 
   function handleSummonKilled(killerEnemy) {

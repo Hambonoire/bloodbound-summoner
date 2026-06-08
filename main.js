@@ -318,11 +318,11 @@ function chooseNextIntent(enemy) {
 
 function executeEnemyIntent(enemy) {
   const intent = chooseNextIntent(enemy);
-
   console.log(`${enemy.name} prepares to ${intent}.`);
 
   switch (intent) {
     case "attack":
+      if (enemy.onAttack) enemy.onAttack(enemy, { encounter });
       combatSystem.enemyAttack(enemy);
       if (
         enemy.effect &&
@@ -336,8 +336,11 @@ function executeEnemyIntent(enemy) {
       console.log(`${enemy.name} braces. Armor: ${enemy.armor}`);
       break;
     case "curse":
-      // TODO: implement curse application
-      console.log(`${enemy.name} applies a curse. [Effect: ${enemy.effect}]`);
+      if (enemy.onCurse) {
+        enemy.onCurse(enemy, { encounter });
+      } else {
+        console.log(`${enemy.name} applies a curse. [Effect: ${enemy.effect}]`);
+      }
       break;
     case "heal":
       enemy.hp = Math.min(enemy.hp + 3, enemy.maxHp);
@@ -350,6 +353,9 @@ function executeEnemyIntent(enemy) {
       combatSystem.enemyAttack(enemy);
       break;
   }
+
+  // Clear turn-scoped flags after this enemy acts
+  enemy.gruntDiedThisTurn = false;
 }
 
 function onCombatStart() {

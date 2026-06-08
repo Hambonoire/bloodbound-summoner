@@ -135,6 +135,36 @@ const enemies = [
     intents: ["curse", "attack", "block", "attack"],
     effect:
       "Can sacrifice a Grunt in this encounter to heal 5 HP and gain +2 armor. On attack: if a friendly Grunt died this turn, deal +2 damage.",
+    onAllyDeath(self, deadEnemy) {
+      if (deadEnemy.tier === "grunt") {
+        self.gruntDiedThisTurn = true;
+      }
+    },
+    onCurse(self, { encounter }) {
+      // Find a living Grunt to sacrifice
+      const grunt = encounter.enemies.find(
+        (e) => e.hp > 0 && e.tier === "grunt" && e.id !== self.id,
+      );
+      if (!grunt) {
+        console.log(`[Bonecaller Adept] No Grunt available to sacrifice.`);
+        return;
+      }
+      grunt.hp = 0;
+      console.log(`[Bonecaller Adept] Sacrificed ${grunt.name}.`);
+      self.hp = Math.min(self.hp + 5, self.maxHp);
+      self.armor += 2;
+      console.log(
+        `[Bonecaller Adept] Healed to ${self.hp} HP, armor now ${self.armor}.`,
+      );
+    },
+    onAttack(self) {
+      if (self.gruntDiedThisTurn) {
+        self.attack += 2;
+        console.log(
+          `[Bonecaller Adept] Grunt died this turn — +2 attack (now ${self.attack}).`,
+        );
+      }
+    },
   },
 
   // --- BOSSES ---
