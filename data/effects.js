@@ -9,6 +9,8 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
         return applyBoneHarvest(card);
       case "bf-drain_01":
         return applySanguineSiphon(card);
+      case "generic_relic_01":
+        return applyBloodboundSigil(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -89,6 +91,25 @@ function createEffectSystem({ player, run, encounter, costSystem }) {
     );
 
     // TODO: if drain damage would overflow (enemy hp drops below 0), apply overflow as self-damage → Pain
+  }
+
+  function applyBloodboundSigil(card) {
+    // Passive: raise maxBlood by 2 on acquisition
+    player.maxBlood += 2;
+    console.log(
+      `[Effect] ${card.name}: Max Blood increased to ${player.maxBlood}.`,
+    );
+
+    // Register the relic so combat-start hook can fire
+    if (!player.relics) player.relics = [];
+    if (!player.relics.includes(card.id)) {
+      player.relics.push(card.id);
+      console.log(`[Effect] ${card.name}: Relic registered.`);
+    } else {
+      console.log(
+        `[Effect] ${card.name}: Already equipped — maxBlood boost skipped.`,
+      );
+    }
   }
 
   return {

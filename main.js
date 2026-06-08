@@ -40,6 +40,7 @@ const player = {
     bleedStacks: 0,
     bleedTurnsRemaining: 0,
   },
+  relics: [], // relic card IDs equipped this run
 };
 
 console.log("Bloodbound Summoner initialized.");
@@ -127,6 +128,7 @@ function startRun(startingArchetype) {
   player.hand = [];
   player.deck = [];
   player.discard = [];
+  player.relics = [];
 
   // Reset pain milestones
   costSystem.resetMilestones();
