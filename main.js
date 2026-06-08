@@ -317,6 +317,9 @@ function chooseNextIntent(enemy) {
 }
 
 function executeEnemyIntent(enemy) {
+  // Fire turn-start hook before intent resolves
+  if (enemy.onTurnStart) enemy.onTurnStart(enemy, { encounter });
+
   const intent = chooseNextIntent(enemy);
   console.log(`${enemy.name} prepares to ${intent}.`);
 

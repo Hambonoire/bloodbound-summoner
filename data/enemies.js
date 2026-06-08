@@ -183,6 +183,18 @@ const enemies = [
     intents: ["curse", "attack", "attack", "block"],
     effect:
       "At the start of its turn, may deal 3 damage to itself to gain +2 attack this encounter. Deals +1 damage for every 5 HP the player is missing.",
+    onTurnStart(self) {
+      // self-wound here bypasses damageEnemy intentionally — it should not trigger onDamaged (no Rage-style feedback loop on itself) and it shouldn't trigger handleEnemyDeath if it somehow hits 0 (the hp > 3 guard prevents that)
+      if (self.hp > 3) {
+        self.hp -= 3;
+        self.attack += 2;
+        console.log(
+          `[Bloodbound Butcher] Self-wounds for 3 (HP: ${self.hp}), gains +2 attack (now ${self.attack}).`,
+        );
+      } else {
+        console.log(`[Bloodbound Butcher] Too wounded to self-buff. Skips.`);
+      }
+    },
   },
 
   {
