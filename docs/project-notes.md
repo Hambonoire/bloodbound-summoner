@@ -175,7 +175,6 @@ Systems implemented:
 ### Systems pinned to future work
 
 - `curse_fragile_blood` and `curse_brittle_bones` now apply on acquire in data/map.js; `curse_clotted_pain` (Pain-gain reduction) still deferred as it requires touching `dealSelfDamage`.
-- Artifact system: define effects in `data/artifacts.js` and wire into `run.artifacts`, Gatekeeper checks, and combat-start hook.
 - Conditional enemy behaviors, richer targeting, player choice for sacrifices/blocks/discards, and more flexible Broken/Pain run mechanics deferred to later UI and systems work.
 
 ---
