@@ -52,6 +52,7 @@ const run = {
   artifacts: [],
   discoveredHints: [],
   archetypes: null,
+  act: 1,
 };
 
 const shop = {
@@ -121,6 +122,7 @@ function startRun(startingArchetype) {
   run.artifacts = [];
   run.discoveredHints = [];
   run.archetypes = null;
+  run.act = 1; // add alongside run.collection = [], run.curses = [], etc.
 
   // Reset player core stats
   player.hp = 30;
@@ -407,6 +409,25 @@ function checkEncounterEnd() {
     // Boss-only bonus: +3 Marrow if any boss was present
     const foughtBoss = encounter.enemies.some((e) => e.tier === "boss");
     const bossBonus = foughtBoss ? 3 : 0;
+
+    // Act 1 boss kill: grant archetype seal if not already held
+    if (foughtBoss && run.act === 1) {
+      const sealMap = {
+        "blood-flesh": "artifact_blood_seal",
+        "undead-bone": "artifact_bone_seal",
+      };
+      const seal = sealMap[run.archetype];
+      if (seal && !(run.artifacts || []).includes(seal)) {
+        run.artifacts = run.artifacts || [];
+        run.artifacts.push(seal);
+        const { getArtifactById } = require("./data/artifacts");
+        const sealData = getArtifactById(seal);
+        console.log(
+          `[Boss Reward] ${sealData ? sealData.name : seal} added to run artifacts.`,
+        );
+        logRunArtifacts();
+      }
+    }
 
     const totalMarrow = baseMarrow + bossBonus;
     economySystem.earnMarrow(totalMarrow);
