@@ -272,6 +272,9 @@ function createMapSystem({
       case "shop":
         resolveShop(node);
         break;
+      case "npc":
+        resolveNPC(node);
+        break;
       default:
         console.log(`No resolver for node type: ${node.type}`);
     }
@@ -533,6 +536,53 @@ function createMapSystem({
     console.log(`Secret discovered — ${node.secret.hint}`);
     console.log(`Hints found this run: ${run.discoveredHints.length}`);
   }
+  function resolveNPC(node) {
+    const npc = node.npc;
+    if (!npc) {
+      console.log(`${node.title}: No NPC data found.`);
+      completeNode(node.id);
+      return;
+    }
+
+    console.log(`\n[${npc.name}]`);
+    console.log(`  ${npc.dialogue}`);
+
+    // Advance hint chain
+    run.discoveredHints = run.discoveredHints || [];
+    if (!run.discoveredHints.includes(npc.hintId)) {
+      run.discoveredHints.push(npc.hintId);
+      console.log(`  Hint acquired: "${npc.hint}"`);
+      console.log(`  Hints this run: ${run.discoveredHints.length}`);
+    } else {
+      console.log(`  (Hint already known.)`);
+    }
+
+    // Small Marrow reward
+    if (npc.marrowReward && npc.marrowReward > 0) {
+      economySystem.earnMarrow(npc.marrowReward);
+      console.log(
+        `  The wanderer leaves something behind. (+${npc.marrowReward} Marrow)`,
+      );
+    }
+
+    completeNode(node.id);
+
+    // Check if hint chain is now complete — may unlock hidden_secret node
+    checkHintChain();
+  }
+  function checkHintChain() {
+    const hints = run.discoveredHints || [];
+    // Requires hint_02 (Wanderer 1) and hint_03 (Wanderer 2) to unlock node_11.
+    if (hints.includes("hint_02") && hints.includes("hint_03")) {
+      const secretNode = getNode("node_11");
+      if (secretNode && secretNode.locked) {
+        secretNode.locked = false;
+        console.log(
+          `[Hidden Secret unlocked] The wall opens. Travel to "???" when ready.`,
+        );
+      }
+    }
+  }
   function completeNode(id) {
     const node = getNode(id);
     if (!node) return;
@@ -563,6 +613,7 @@ function createMapSystem({
     completeNode,
     discoverSecret,
     resolveNode,
+    checkHintChain,
   };
 }
 
