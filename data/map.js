@@ -275,6 +275,9 @@ function createMapSystem({
       case "npc":
         resolveNPC(node);
         break;
+      case "combat_mystery":
+        resolveCombatMystery(node);
+        break;
       default:
         console.log(`No resolver for node type: ${node.type}`);
     }
@@ -528,6 +531,52 @@ function createMapSystem({
     }
 
     completeNode(node.id);
+  }
+  function resolveCombatMystery(node) {
+    // Act 1 mystery pool — unusual or escalated compositions not found on
+    // the standard map path. Rolled at resolve time, never hardcoded on the node.
+    const mysteryPools = [
+      { enemies: ["elite_01"], weight: 2 },
+      { enemies: ["elite_02", "grunt_01"], weight: 2 },
+      { enemies: ["soldier_03", "soldier_01"], weight: 3 },
+      { enemies: ["soldier_02", "soldier_03"], weight: 2 },
+      { enemies: ["grunt_01", "grunt_02", "grunt_03"], weight: 1 },
+    ];
+
+    // Weighted random pick
+    const totalWeight = mysteryPools.reduce((sum, e) => sum + e.weight, 0);
+    let roll = Math.random() * totalWeight;
+    let pool = mysteryPools[mysteryPools.length - 1];
+    for (const entry of mysteryPools) {
+      roll -= entry.weight;
+      if (roll <= 0) {
+        pool = entry;
+        break;
+      }
+    }
+
+    const enemyList = pool.enemies
+      .map((id) => getEnemyById(id))
+      .filter(Boolean);
+
+    if (enemyList.length === 0) {
+      console.log(
+        `${node.title}: No valid enemies rolled. Skipping encounter.`,
+      );
+      completeNode(node.id);
+      return;
+    }
+
+    console.log(
+      `??? Encounter at ${node.title}: ${enemyList.map((e) => e.name).join(", ")}`,
+    );
+
+    // Reuse standard combat flow — victory + node completion handled by
+    // checkEncounterEnd() in main.js, same as regular combat nodes.
+    // Store the rolled enemy list on the node so checkEncounterEnd() can
+    // reference it if needed (mirrors how standard combat nodes work).
+    node.enemies = pool.enemies;
+    startEncounter(enemyList);
   }
   function discoverSecret(node) {
     node.secret.discovered = true;
