@@ -214,6 +214,7 @@ function startEncounter(enemyList) {
       .map((e) => e.name)
       .join(", ")} ---`,
   );
+  onCombatStart(); // fire entry triggers
 }
 
 function getEnemyById(id) {
@@ -344,6 +345,31 @@ function executeEnemyIntent(enemy) {
       );
       combat.enemyAttack(enemy);
       break;
+  }
+}
+
+function onCombatStart() {
+  // Curse: Blood Debt — lose 2 HP at combat start
+  if (run.curses && run.curses.includes("curse_blood_debt")) {
+    costSystem.dealSelfDamage(2);
+    console.log("[Combat Start] Blood Debt: lost 2 HP.");
+  }
+
+  // Artifact: Chalice of Coagulated Blood — gain 2 Blood at combat start
+  if (run.artifacts && run.artifacts.includes("artifact_blood_chalice")) {
+    costSystem.gainBlood(2);
+    console.log("[Combat Start] Blood Chalice: gained 2 Blood.");
+  }
+
+  // Relic: Bloodbound Sigil — gain 2 Blood at combat start if Pain >= 10
+  // Requires player.relics array (Task 38)
+  if (player.relics && player.relics.includes("generic_relic_01")) {
+    if (player.pain >= 10) {
+      costSystem.gainBlood(2);
+      console.log(
+        "[Combat Start] Bloodbound Sigil: gained 2 Blood (Pain >= 10).",
+      );
+    }
   }
 }
 
