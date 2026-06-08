@@ -1,6 +1,17 @@
+const { getEnemyById } = require("./enemies");
 const { curses, drawRandomCurses } = require("./curses");
 
-function createMapSystem() {
+function createMapSystem({
+  player,
+  run,
+  cards,
+  costSystem,
+  economySystem,
+  shopSystem,
+  shop,
+  startEncounter,
+  drawRandom,
+}) {
   const act1Map = {
     act: 1,
     currentNodeId: "node_01",
@@ -264,7 +275,7 @@ function createMapSystem() {
       return;
     }
 
-    dealSelfDamage(hpCost);
+    costSystem.dealSelfDamage(hpCost);
 
     // Reward: add a random card from the pool to run.collection
     const pool = cards.filter(
@@ -291,7 +302,7 @@ function createMapSystem() {
     player.pain = Math.max(player.pain - painDrain, 0);
     const drained = prevPain - player.pain;
 
-    updatePainZone();
+    costSystem.updatePainZone();
 
     console.log(
       `${node.title}: Rested. HP restored: +${healed} (${player.hp}/${player.maxHp}) | Pain drained: -${drained} (${player.pain})`,
@@ -371,7 +382,7 @@ function createMapSystem() {
     switch (outcome) {
       case "marrow": {
         const amount = rollMarrow(4, 10);
-        earnMarrow(amount);
+        economySystem.earnMarrow(amount);
         console.log(`${node.title}: Found forgotten Marrow. (+${amount})`);
         break;
       }
@@ -387,8 +398,8 @@ function createMapSystem() {
         break;
       }
       case "damage": {
-        const amount = rollMarrow(3, 8); // reuse helper for int in range
-        dealSelfDamage(amount);
+        const amount = economySystem.rollMarrow(3, 8); // reuse helper for int in range
+        costSystem.dealSelfDamage(amount);
         console.log(
           `${node.title}: Something unseen cuts you. (-${amount} HP)`,
         );

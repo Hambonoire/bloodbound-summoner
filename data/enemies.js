@@ -148,4 +148,13 @@ const enemies = [
   },
 ];
 
-module.exports = { enemies };
+function getEnemyById(id) {
+  const enemy = enemies.find((e) => e.id === id);
+  if (!enemy) {
+    console.log(`Unknown enemy ID: ${id}`);
+    return null;
+  }
+  return enemy;
+}
+
+module.exports = { enemies, getEnemyById };

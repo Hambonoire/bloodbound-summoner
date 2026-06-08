@@ -64,7 +64,6 @@ const encounter = {
   active: false,
 };
 
-const mapSystem = createMapSystem();
 const costSystem = createCostSystem({ player, onEndRun: endRun });
 
 const effectSystem = createEffectSystem({
@@ -80,6 +79,18 @@ const deckSystem = createDeckSystem({
   cards,
   costSystem,
   effectSystem,
+});
+
+const mapSystem = createMapSystem({
+  player,
+  run,
+  cards,
+  costSystem,
+  economySystem,
+  shopSystem,
+  shop,
+  startEncounter,
+  drawRandom: deckSystem.drawRandom,
 });
 
 const combat = createCombatSystem({ player, encounter, onEndRun: endRun });
