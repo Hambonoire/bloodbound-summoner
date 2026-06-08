@@ -169,26 +169,31 @@ const enemies = [
     intentWeights: { attack: 5, block: 2, heal: 1 },
     effect:
       "Whenever it kills a summon, summons a Shambling Corpse to the encounter. At 50% and 25% HP thresholds, heals 6 HP and gains +2 armor.",
-  },
-  onDamaged(self) {
-    if (!self.thresholdsFired) self.thresholdsFired = new Set();
-    const pct = self.hp / self.maxHp;
-    for (const t of [{ key: "50", pct: 0.5 }, { key: "25", pct: 0.25 }]) {
-      if (pct <= t.pct && !self.thresholdsFired.has(t.key)) {
-      self.thresholdsFired.add(t.key);
-      self.hp = Math.min(self.hp + 6, self.maxHp);
-      self.armor += 2;
-      console.log(`[Grave Tyrant] ${t.key}% threshold: healed to ${self.hp} HP, armor now ${self.armor}.`);
+    onDamaged(self) {
+      if (!self.thresholdsFired) self.thresholdsFired = new Set();
+      const pct = self.hp / self.maxHp;
+      for (const t of [
+        { key: "50", pct: 0.5 },
+        { key: "25", pct: 0.25 },
+      ]) {
+        if (pct <= t.pct && !self.thresholdsFired.has(t.key)) {
+          self.thresholdsFired.add(t.key);
+          self.hp = Math.min(self.hp + 6, self.maxHp);
+          self.armor += 2;
+          console.log(
+            `[Grave Tyrant] ${t.key}% threshold: healed to ${self.hp} HP, armor now ${self.armor}.`,
+          );
+        }
       }
-    }
-  },
-  onSummonKilled(self, { encounter, getEnemyById }) {
-    const corpse = getEnemyById("grunt_01");
-    if (!corpse) return;
-    corpse.id = `grunt_01_spawn_${Date.now()}`;
-    corpse.intentIndex = 0;
-    encounter.enemies.push(corpse);
-    console.log(`[Grave Tyrant] Spawned ${corpse.name} (${corpse.id}).`);
+    },
+    onSummonKilled(self, { encounter, getEnemyById }) {
+      const corpse = getEnemyById("grunt_01");
+      if (!corpse) return;
+      corpse.id = `grunt_01_spawn_${Date.now()}`;
+      corpse.intentIndex = 0;
+      encounter.enemies.push(corpse);
+      console.log(`[Grave Tyrant] Spawned ${corpse.name} (${corpse.id}).`);
+    },
   },
 ];
 
