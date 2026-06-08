@@ -71,6 +71,7 @@ const combatSystem = createCombatSystem({
   player,
   encounter,
   onEndRun: endRun,
+  getEnemyById: enemySystem.getEnemyById,
 });
 
 const enemySystem = createEnemySystem();

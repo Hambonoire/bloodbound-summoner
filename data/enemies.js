@@ -155,7 +155,7 @@ function createEnemySystem() {
       console.log(`Unknown enemy ID: ${id}`);
       return null;
     }
-    return enemy;
+    return { ...enemy };
   }
 
   return {

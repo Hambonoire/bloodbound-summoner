@@ -1,4 +1,4 @@
-function createCombatSystem({ player, encounter, onEndRun }) {
+function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
   function endRun(reason) {
     if (onEndRun) onEndRun(reason);
   }
@@ -80,6 +80,8 @@ function createCombatSystem({ player, encounter, onEndRun }) {
       if (damage >= blocker.defense) {
         player.field = player.field.filter((s) => s.id !== blocker.id);
         console.log(`${blocker.name} destroyed.`);
+        // Grave Tyrant: spawn Shambling Corpse on summon kill
+        handleSummonKilled(enemy);
       }
     } else {
       // Intentional: same as above — direct player damage bypasses Pain/Blood.
@@ -100,6 +102,29 @@ function createCombatSystem({ player, encounter, onEndRun }) {
       console.log(
         `${enemy.name} enrages and gains +1 attack (now ${enemy.attack}).`,
       );
+    }
+    // Grave Tyrant: heal + armor at 50% and 25% HP thresholds (once per threshold).
+    if (
+      text.startsWith("Whenever it kills a summon, summons a Shambling Corpse")
+    ) {
+      if (!enemy.thresholdsFired) enemy.thresholdsFired = new Set();
+
+      const pct = enemy.hp / enemy.maxHp;
+      const thresholds = [
+        { key: "50", pct: 0.5 },
+        { key: "25", pct: 0.25 },
+      ];
+
+      for (const t of thresholds) {
+        if (pct <= t.pct && !enemy.thresholdsFired.has(t.key)) {
+          enemy.thresholdsFired.add(t.key);
+          enemy.hp = Math.min(enemy.hp + 6, enemy.maxHp);
+          enemy.armor += 2;
+          console.log(
+            `[Grave Tyrant] ${t.key}% threshold: healed to ${enemy.hp} HP, armor now ${enemy.armor}.`,
+          );
+        }
+      }
     }
   }
 
@@ -129,6 +154,25 @@ function createCombatSystem({ player, encounter, onEndRun }) {
       }
       console.log(`${deadEnemy.name} death effect: no valid target to heal.`);
     }
+  }
+
+  function handleSummonKilled(killerEnemy) {
+    if (!killerEnemy || !killerEnemy.effect) return;
+    if (
+      !killerEnemy.effect.startsWith(
+        "Whenever it kills a summon, summons a Shambling Corpse",
+      )
+    )
+      return;
+
+    const corpse = getEnemyById("grunt_01");
+    if (!corpse) return;
+
+    // Give the spawned enemy a unique instance id so it can be targeted individually
+    corpse.id = `grunt_01_spawn_${Date.now()}`;
+    corpse.intentIndex = 0;
+    encounter.enemies.push(corpse);
+    console.log(`[Grave Tyrant] Spawned ${corpse.name} (${corpse.id}).`);
   }
 
   return {
