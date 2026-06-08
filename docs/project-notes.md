@@ -22,6 +22,13 @@ Systems implemented:
 - `generic_relic_01` passive logic: `player.relics` array, `maxBlood +2` on acquisition, 2 Blood on combat entry if Pain ≥ 10
 - All system factories use injected dependencies — no bare globals in node resolvers or factory internals
 - `enemySystem` (`createEnemySystem`) wraps enemy catalog with `getEnemyById`; injected into `createMapSystem`
+- NPC / Wanderer node resolution (`resolveNPC`, hint chain advancement)
+- Combat Mystery node resolution (`resolveCombatMystery`, weighted enemy pool)
+- Updated Gatekeeper: dual-role (seal check + hint_01 seed)
+- `checkHintChain()` helper — unlocks Hidden Secret on full hint chain
+- Archetype seals (`artifact_blood_seal`, `artifact_bone_seal`) defined and granted on Act 1 boss kill
+- `run.act` added to run state; initialized to 1 in `startRun()`
+- Act 2 map stubbed in `data/map.js` (15-node, mirrors Act 1 shape)
 
 ---
 
@@ -37,22 +44,28 @@ Systems implemented:
 - Enemy tiers: Grunt, Soldier, Elite, Boss
 - Enemy archetypes: Bloodhunter, Bonecaller, Cursebinder, Voidwalker
 - Run structure: 3 acts, node map, branching paths unlock on node clear
-- Node types: Combat, Shop, Ritual, Curse, Rest, Mystery, Gatekeeper, Hidden Secret
+- Node types: Combat, Shop, Ritual, Curse, Rest, Mystery, Gatekeeper, Hidden Secret, Combat Mystery, Wanderer (NPC)
 - Currency: Marrow
 - Pack types: Archetype packs, Rogue packs
 - Enemy-dealt overflow damage intentionally bypasses Pain/Blood — only self-inflicted damage triggers those systems.
+- Node count per act: 15 nodes, ratio defined in game-design.md Run Structure
+- Act-clear condition: boss kill increments `run.act`; next act map loads
+- Gatekeeper seeds `hint_01` on first contact (blocked or open)
+- Hidden Secret unlocked by full hint chain (hint_01 + hint_02 + hint_03)
+- Boss loot table: archetype seal (Act 1 only), 1 rare card, +3 Marrow, 50% Rogue pack offer
+- Archetype seals derived from `run.archetype` at resolve time via `sealMap`
 
 ---
 
 ## Open Questions
 
 - What does the Broken state penalty look like exactly (run ends immediately, or a final-chance mechanic)?
-- Boss loot tables — contents and quantities per act
+- Boss loot tables — quantities and act-specific contents for Acts 2 and 3 (Act 1 structure locked)
 - Exact Marrow earn rates per node type
 - Starting deck composition — which cards does the player begin a run with?
-- How many nodes per act, and what is the rough ratio of node types?
 - What is the intended baseline battlefield summon cap, and should relics/cards be able to raise it temporarily or permanently?
 - Should duplicate relics stack their passive effects (e.g., two `generic_relic_01` copies → `maxBlood +4`)? Currently blocked by duplicate guard in `applyBloodboundSigil`.
+- How many nodes per act, and what is the rough ratio of node types?
 
 ---
 
@@ -119,8 +132,37 @@ Systems implemented:
 - `resolveRest()`: heal amount (8) and Pain drain (5) are hardcoded balance constants for playtesting.
 - `resolveCurse()` and `resolveMystery()` draw from the shared `data/curses.js` pool via `drawRandomCurses(1)`.
 - `resolveMystery()` reuses `rollMarrow()` to generate self-damage amounts; intentional.
-- `node_11` Gatekeeper `artifact_01` requirement has been cleared; update to a real catalog ID when artifact progression is scoped.
 - Curse nodes draw from `data/curses.js`, store curse `id` in `run.curses`, and log name/effect. `logRunCurses()` resolves IDs for a one-line debug summary.
+- `resolveNPC()` calls `checkHintChain()` on every completion — safe since it only acts when both hint IDs are present. If hint IDs ever change, update the string literals in `checkHintChain()` to match node npc.hintId values.
+- NPC nodes complete normally via `completeNode()` — they unlock their
+  connections immediately. node_11 (Hidden Secret) is a second unlock that fires only when the full chain is satisfied.
+- `resolveCombatMystery()` rolls enemy composition at resolve time and writes it back to `node.enemies` so `checkEncounterEnd()` can mark the node complete via the standard combat win path. No special casing needed in `main.js`.
+- Mystery pool weights are hardcoded for Act 1. When Act 2 is built, pass`node.act` or `run.act` into a pool selector so the pool scales with act difficulty.
+- Elite solo (`elite_01`, `elite_02`) entries are weighted lower (2) than soldier pairs (3) — act-end nodes should feel hard but not always punishing. Tune after playtesting.
+- `resolveGatekeeper()` derives the required seal from `run.archetype` at resolve time via `sealMap`. If new archetypes are added, extend `sealMap` and add their seal IDs to `data/artifacts.js`.
+- `hint_01` seeds on first Gatekeeper contact (blocked or open) — this is intentional. Players who path straight to the gate get the hunt cue before backtracking. Players who took NPC branches already have hint_02/hint_03 but not hint_01 until they reach the gate.
+- The gate remains permanently blocked until `artifact_blood_seal` or
+  `artifact_bone_seal` is in `run.artifacts`. This is wired in Task 54.
+- `run.act` added to run state in `main.js`. Must be incremented when act progression is wired (Task 55 / post-boss transition logic).
+- Boss seal grant uses `run.act === 1` guard — Acts 2 and 3 bosses drop
+  different loot (second rare card slot). Update the guard when act 2+ boss loot is defined.
+- `getArtifactById` is re-required inside `checkEncounterEnd()` for the seal name lookup. If this causes any module caching concern, hoist the import to the top of `main.js` alongside the existing artifacts require.
+- Act 2 map stubbed in `data/map.js`. All node types and branching connections are final — only enemy IDs, titles, and NPC dialogue need tuning before Act 2 goes live.
+- `checkHintChain()` currently only checks Act 1 hint IDs (hint_02, hint_03). Extend it with an act-aware check (keyed on `run.act`) when Act 2 is activated, adding a2_hint_02 + a2_hint_03 → unlock a2_node_11.
+- Act 2 Gatekeeper (`a2_node_13`) has empty `requiredArtifacts` — define
+  the Act 2 gate artifact and wire its grant to the Act 2 boss kill.
+- `resolveCombatMystery()` mystery pool is currently Act 1 only. Add an
+  act-keyed pool selector when Act 2 enemies are defined.
+- `getNode()` and `resolveNode()` currently only search `act1Map.nodes`.
+  When Act 2 is activated, wire a map selector in `main.js` that passes
+  the correct map to `mapSystem` based on `run.act`.
+- `resolveNPC()` resolves Wanderer nodes; advances `run.discoveredHints`, logs dialogue, grants Marrow. NPC data lives on the node object (`node.npc`).
+- `resolveCombatMystery()` rolls enemy composition at resolve time from a weighted pool; writes result back to `node.enemies` for `checkEncounterEnd()` compat. Pool is Act 1 only — extend with act-keyed selector when Act 2 enemies are defined.
+- `checkHintChain()` checks for hint_02 + hint_03 and unlocks `node_11`. Extend with act-aware hint IDs when Act 2 is activated.
+- `resolveGatekeeper()` derives required seal from `run.archetype` via `sealMap` at resolve time. Extend `sealMap` if new archetypes are added.
+- Act 2 map stubbed with placeholder enemy IDs and TODO-flagged titles. `getNode()` and `resolveNode()` currently only search `act1Map.nodes` — wire a map selector keyed on `run.act` when Act 2 is activated.
+- `resolveCombatMystery()` Act 2 pool: add act-keyed pool selector once Act 2 enemy IDs are defined.
+- Act 2 Gatekeeper (`a2_node_13`) has empty `requiredArtifacts` — define the Act 2 gate artifact and wire its grant to the Act 2 boss kill.
 
 ### System init order (`main.js`)
 
@@ -133,7 +175,8 @@ Systems implemented:
 - Shop inventory supports act-aware tier weighting via `generateShopInventory(act)`. Act tracking on nodes/run will be refined as multi-act maps are implemented.
 - `drawRandom` is now injected into `createEconomySystem` — no bare global dependency remains.
 - Artifact data lives in `data/artifacts.js` as data-only stubs. `run.artifacts` stores artifact IDs; `logRunArtifacts()` resolves and logs them. On-win minion grant wired in checkEncounterEnd().
-- Boss/secret rewards and artifact-granting sources are not yet implemented; Gatekeeper and artifact-related progression are blocked on this.
+- `artifact_blood_seal` and `artifact_bone_seal` defined in `data/artifacts.js` and granted in `checkEncounterEnd()` on Act 1 boss kill. Gatekeeper reads from `run.artifacts` via `resolveGatekeeper()`.
+- Acts 2 and 3 boss loot (second rare card slot, act-specific artifacts) still deferred — blocked on Act 2 enemy and Gatekeeper artifact definitions.
 
 ### Combat-start entry hook
 
@@ -163,7 +206,10 @@ Systems implemented:
 - Flexible Broken zone cap as a card effect
 - Pain carryover between matches as a curse or run mechanic
 - Conditional branching path unlock requirements
-- Gatekeeper artifact requirement specifics
+- Act 2 Gatekeeper artifact: define ID, grant source, and `resolveGatekeeper()` `sealMap` entry
+- Act 2 enemy IDs, NPC names/dialogue, and boss identity (currently stubbed with Act 1 placeholders)
+- `checkHintChain()` act-aware extension for Act 2 hint IDs (a2_hint_02 + a2_hint_03 → unlock a2_node_11)
+- Map selector in `main.js` keyed on `run.act` to route `getNode()` and `resolveNode()` to the correct act map
 - Additional archetypes: Demonic/Infernal, Void/Eldritch, Bound/Shackled
 - Secret archetype unlock spanning multiple runs (hint-based across Act 1)
 - Starting deck variance: small random swaps or weighted picks while preserving core archetype identity
@@ -223,45 +269,19 @@ Systems implemented:
 45. ✅ Wire elite_02 (Bonecaller Adept) effects — sacrifice/heal and on-kill damage bonus
 46. ✅ Wire boss_01 (Bloodbound Butcher) self-wound buff at turn start
 47. ✅ Champion card effect handlers — bf_champion_01 (Fleshbinder) heal-per-summon and ub_champion_01 (Bonecage Titan) overflow absorption in effects.js
-48. Overworld scoping pass — resolve open design questions before Act 2 work begins:
+48. ✅ Overworld scoping pass — resolve open design questions before Act 2 work begins:
     - Decide node count and type ratio for a standard act
     - Define act-clear condition and run progression trigger (Act 1 → Act 2 → Act 3)
     - Replace cleared node_11 Gatekeeper requirement with a real artifact ID and define how artifacts are granted (boss loot, secret nodes, shop?)
     - Define boss loot table contents (unique card? artifact? both?)
     - Sketch Act 2 node map structure (can mirror Act 1 shape initially)
     - Output: updated game-design.md sections for Run Structure and Node Types; updated map.js Act 2 stub
-49. Rebuild `act1Map` node array in `data/map.js` — 15-node layout with named
-    branching identities (Branch A: ritual/self-damage, Branch B: combat,
-    Branch C/E: NPC/scavenger, Branch D/F: combat, act-end combat mystery nodes,
-    Gatekeeper, Boss). Replace current 12-node hardcoded map.
-
-50. Add `resolveNPC()` handler in `data/map.js` — resolves Wanderer nodes;
-    advances hint chain via `run.discoveredHints`, logs NPC name/flavor, grants
-    small Marrow reward. Add `case "npc"` to `resolveNode()` switch.
-
-51. Add `resolveCombatMystery()` handler in `data/map.js` — rolls enemy
-    composition at resolve time from a curated elite/unusual pool rather than
-    fixed IDs; routes into existing `resolveCombatNode()`. Add
+49. ✅ Rebuild `act1Map` node array in `data/map.js` — 15-node layout with named branching identities (Branch A: ritual/self-damage, Branch B: combat, Branch C/E: NPC/scavenger, Branch D/F: combat, act-end combat mystery nodes, Gatekeeper, Boss). Replace current 12-node hardcoded map.
+50. ✅ Add `resolveNPC()` handler in `data/map.js` — resolves Wanderer nodes; advances hint chain via `run.discoveredHints`, logs NPC name/flavor, grants small Marrow reward. Add `case "npc"` to `resolveNode()` switch.
+51. ✅ Add `resolveCombatMystery()` handler in `data/map.js` — rolls enemy composition at resolve time from a curated elite/unusual pool rather than fixed IDs; routes into existing `resolveCombatNode()`. Add
     `case "combat_mystery"` to `resolveNode()` switch.
-
-52. Update `resolveGatekeeper()` in `data/map.js` — dual role: (1) check
-    `run.artifacts` for player archetype seal (`artifact_blood_seal` or
-    `artifact_bone_seal`), (2) seed `run.discoveredHints` with `hint_01` if
-    not already present. Gate only opens when seal check passes.
-
-53. Add `checkHintChain()` helper in `data/map.js` — called after any NPC or
-    Wanderer node completes; unlocks the Hidden Secret node once both `hint_01`
-    and `hint_02` are present in `run.discoveredHints`.
-
-54. Add `artifact_blood_seal` and `artifact_bone_seal` to `data/artifacts.js`
-    as data entries. Wire boss-kill grant in `main.js`: Act 1 boss death drops
-    the player's archetype seal into `run.artifacts`.
-
-55. Stub Act 2 map in `data/map.js` — mirror Act 1's 15-node shape with
-    placeholder enemy IDs, adjusted node titles, and a comment flagging it for
-    stat/enemy tuning. No new node types or resolvers needed yet.
-
-56. Update `docs/game-design.md` — add Wanderer (NPC) and Combat Mystery to
-    the Node Types table; update Run Structure section with node count (15),
-    type ratio, act-clear condition, and boss loot table contents; add Hidden
-    Secret scavenger hunt flow description.
+52. ✅ Update `resolveGatekeeper()` in `data/map.js` — dual role: (1) check `run.artifacts` for player archetype seal (`artifact_blood_seal` or `artifact_bone_seal`), (2) seed `run.discoveredHints` with `hint_01` if not already present. Gate only opens when seal check passes.
+53. ✅ Add `checkHintChain()` helper in `data/map.js` — called after any NPC or Wanderer node completes; unlocks the Hidden Secret node once both `hint_01` and `hint_02` are present in `run.discoveredHints`.
+54. ✅ Add `artifact_blood_seal` and `artifact_bone_seal` to `data/artifacts.js` as data entries. Wire boss-kill grant in `main.js`: Act 1 boss death drops the player's archetype seal into `run.artifacts`.
+55. ✅ Stub Act 2 map in `data/map.js` — mirror Act 1's 15-node shape with placeholder enemy IDs, adjusted node titles, and a comment flagging it for stat/enemy tuning. No new node types or resolvers needed yet.
+56. ✅ Update `docs/game-design.md` — add Wanderer (NPC) and Combat Mystery to the Node Types table; update Run Structure section with node count (15), type ratio, act-clear condition, and boss loot table contents; add Hidden Secret scavenger hunt flow description.
