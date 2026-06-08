@@ -15,6 +15,18 @@ const artifacts = [
     effect:
       "When you win a combat, add a random Undead/Bone minion to your collection.",
   },
+  {
+    id: "artifact_blood_seal",
+    name: "Seal of Bound Blood",
+    effect:
+      "Proof of the Blood/Flesh pact. Required to pass the Warden's Gate. Granted on Act 1 boss kill.",
+  },
+  {
+    id: "artifact_bone_seal",
+    name: "Seal of Hollow Bone",
+    effect:
+      "Proof of the Undead/Bone pact. Required to pass the Warden's Gate. Granted on Act 1 boss kill.",
+  },
 ];
 
 function getArtifactById(id) {
