@@ -316,26 +316,53 @@ function createMapSystem({
     // completeNode(node.id);
   }
   function resolveGatekeeper(node) {
-    const requiredArtifacts = node.requiredArtifacts || [];
+    // Determine required seal based on player archetype.
+    // Seals are granted by the Act 1 boss kill (Task 54).
+    const sealMap = {
+      "blood/flesh": "artifact_blood_seal",
+      "undead/bone": "artifact_bone_seal",
+    };
+    const requiredSeal = sealMap[run.archetype?.toLowerCase()];
 
-    if (requiredArtifacts.length === 0) {
-      console.log(`${node.title}: No artifact requirement. Passing through.`);
-      completeNode(node.id);
-      return;
+    if (requiredSeal && !node.requiredArtifacts.includes(requiredSeal)) {
+      node.requiredArtifacts = [requiredSeal];
     }
 
-    const missing = requiredArtifacts.filter(
-      (id) => !run.artifacts.includes(id),
+    // Artifact check
+    const missing = (node.requiredArtifacts || []).filter(
+      (id) => !(run.artifacts || []).includes(id),
     );
 
     if (missing.length > 0) {
       console.log(
         `${node.title}: BLOCKED — missing artifact(s): ${missing.join(", ")}`,
       );
+
+      // Seed hint_01 even on a blocked attempt — the gate speaks before it
+      // refuses. This is the player's cue to seek out the Wanderers.
+      run.discoveredHints = run.discoveredHints || [];
+      if (!run.discoveredHints.includes("hint_01")) {
+        run.discoveredHints.push("hint_01");
+        console.log(
+          `[The Warden's Gate] The gate hums. Something is carved above the arch:`,
+        );
+        console.log(
+          `  "hint_01 — Two wanderers know the way. Find them before you return."`,
+        );
+      }
       return;
     }
 
-    console.log(`${node.title}: Artifacts verified. Gate opens.`);
+    // Seal verified — gate opens, seed hint_01 if not already present
+    run.discoveredHints = run.discoveredHints || [];
+    if (!run.discoveredHints.includes("hint_01")) {
+      run.discoveredHints.push("hint_01");
+      console.log(
+        `[The Warden's Gate] The gate speaks: "Seek the wanderers. They remember what you don't."`,
+      );
+    }
+
+    console.log(`${node.title}: Seal verified. The gate opens.`);
     completeNode(node.id);
   }
   function resolveShop(node) {
