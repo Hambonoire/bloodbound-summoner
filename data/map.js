@@ -16,6 +16,7 @@ function createMapSystem({
     act: 1,
     currentNodeId: "node_01",
     nodes: [
+      // ── Entry ──────────────────────────────────────────────────────────────
       {
         id: "node_01",
         type: "combat",
@@ -26,6 +27,8 @@ function createMapSystem({
         connections: ["node_02", "node_03"],
         secret: null,
       },
+
+      // ── Branch A: Ritual / self-damage path ────────────────────────────────
       {
         id: "node_02",
         type: "ritual",
@@ -35,6 +38,8 @@ function createMapSystem({
         connections: ["node_04"],
         secret: null,
       },
+
+      // ── Branch B: Combat path ──────────────────────────────────────────────
       {
         id: "node_03",
         type: "combat",
@@ -45,6 +50,8 @@ function createMapSystem({
         connections: ["node_04"],
         secret: null,
       },
+
+      // ── Mid-act Shop (both branches merge here) ────────────────────────────
       {
         id: "node_04",
         type: "shop",
@@ -54,19 +61,28 @@ function createMapSystem({
         connections: ["node_05", "node_06"],
         secret: null,
       },
+
+      // ── Branch C: NPC / scavenger path — hint chain step 1 ─────────────────
       {
         id: "node_05",
-        type: "mystery",
-        title: "The Hollow",
+        type: "npc",
+        title: "The Hollow Crossroads",
         completed: false,
         locked: true,
         connections: ["node_07"],
-        secret: {
-          discovered: false,
-          hintId: "hint_01",
-          hint: "A symbol carved in bone. It means nothing to you. Yet.",
+        secret: null,
+        npc: {
+          id: "wanderer_01",
+          name: "The Ashen Pilgrim",
+          dialogue:
+            "She traces a symbol in the ash. 'The gate remembers those who bleed for it.'",
+          hintId: "hint_02",
+          hint: "A name scratched into the wall. You can almost read it.",
+          marrowReward: 4,
         },
       },
+
+      // ── Branch D: Combat path (no NPC) ─────────────────────────────────────
       {
         id: "node_06",
         type: "combat",
@@ -77,6 +93,8 @@ function createMapSystem({
         connections: ["node_07"],
         secret: null,
       },
+
+      // ── Curse node (both branches merge here) ──────────────────────────────
       {
         id: "node_07",
         type: "curse",
@@ -86,6 +104,8 @@ function createMapSystem({
         connections: ["node_08"],
         secret: null,
       },
+
+      // ── Rest node ──────────────────────────────────────────────────────────
       {
         id: "node_08",
         type: "rest",
@@ -95,41 +115,96 @@ function createMapSystem({
         connections: ["node_09", "node_10"],
         secret: null,
       },
+
+      // ── Branch E: NPC / scavenger path — hint chain step 2 ─────────────────
       {
         id: "node_09",
+        type: "npc",
+        title: "The Sunken Threshold",
+        completed: false,
+        locked: true,
+        connections: ["node_11", "node_13"],
+        secret: null,
+        npc: {
+          id: "wanderer_02",
+          name: "The Bone Cartographer",
+          dialogue:
+            "'The secret opens for those who ask in the old tongue.' He presses a shard of bone into your palm.",
+          hintId: "hint_03",
+          hint: "The shard fits something. You don't know what yet.",
+          marrowReward: 6,
+        },
+      },
+
+      // ── Branch F: Combat path (no NPC) ─────────────────────────────────────
+      {
+        id: "node_10",
         type: "combat",
         title: "The Bonepile",
         enemies: ["soldier_02", "grunt_03"],
         completed: false,
         locked: true,
-        connections: ["node_11"],
+        connections: ["node_13"],
         secret: null,
       },
+
+      // ── Hidden Secret — locked until hint chain complete ────────────────────
+      // Unlocked by checkHintChain() after hint_02 + hint_03 in run.discoveredHints.
+      // Only reachable via Branch E (node_09 connection).
       {
-        id: "node_10",
+        id: "node_11",
         type: "hidden_secret",
         title: "???",
         completed: false,
         locked: true,
-        connections: ["node_11"],
+        connections: ["node_13"],
         secret: {
           discovered: false,
-          hintId: "hint_02",
-          hint: "A name scratched into the wall. You can almost read it.",
+          hintId: "hint_secret",
+          hint: "Behind the wall: something old, something waiting.",
         },
       },
+
+      // ── Act-end Combat Mystery #1 ───────────────────────────────────────────
       {
-        id: "node_11",
+        id: "node_12",
+        type: "combat_mystery",
+        title: "The Wailing Dark",
+        completed: false,
+        locked: true,
+        connections: ["node_13"],
+        secret: null,
+        // enemy composition rolled at resolve time by resolveCombatMystery()
+      },
+
+      // ── Gatekeeper — seeds hint chain, checks archetype seal ───────────────
+      {
+        id: "node_13",
         type: "gatekeeper",
         title: "The Warden's Gate",
         completed: false,
         locked: true,
-        requiredArtifacts: [], // will eventually add an player archetype based artifact
-        connections: ["node_12"],
+        // Populated by resolveGatekeeper() based on run.archetype at resolve time.
+        // Expects "artifact_blood_seal" (Blood/Flesh) or "artifact_bone_seal" (Undead/Bone).
+        requiredArtifacts: [],
+        connections: ["node_14"],
         secret: null,
       },
+
+      // ── Act-end Combat Mystery #2 (escalation) ─────────────────────────────
       {
-        id: "node_12",
+        id: "node_14",
+        type: "combat_mystery",
+        title: "The Threshold of Teeth",
+        completed: false,
+        locked: true,
+        connections: ["node_15"],
+        secret: null,
+      },
+
+      // ── Boss ────────────────────────────────────────────────────────────────
+      {
+        id: "node_15",
         type: "boss",
         title: "The Hollow King's Court",
         enemies: ["boss_01"],
