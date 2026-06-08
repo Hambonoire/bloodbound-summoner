@@ -42,8 +42,8 @@ The project uses a system-factory pattern throughout. Every major subsystem is a
 
 Current factories and their signatures:
 
-- `createCostSystem({ player, onEndRun })` — `data/status-effects.js`
-  - Returns: `canAfford()`, `payCost()`, `dealSelfDamage()`, `gainBlood()`, `spendBlood()`, `drainBlood()`, `applyBleedToPlayer()`, `updatePainZone()`, `checkPainMilestones()`, `resetMilestones()`
+- `createMapSystem({ player, run, cards, costSystem, economySystem, shopSystem, shop, startEncounter, drawRandom, getEnemyById })` — `data/map.js`
+  - Returns: `act1Map`, `act2Map`, `getNode()`, `travelToNode()`, `completeNode()`, `discoverSecret()`, `resolveNode()`, `checkHintChain()`
 
 - `createCombatSystem({ player, encounter, onEndRun, getEnemyById })` — `data/combat.js`
   - Returns: `attackEnemy()`, `enemyAttack()`, `handleEnemyDamaged()`, `handleEnemyDeath()`, `damageEnemy()`
@@ -229,27 +229,20 @@ fix(run): harden run init and starting decks
 
 ## Previous session summary
 
-Tasks 41–47 completed this session. Enemy effects are now fully data-driven via hooks on enemy objects. Champion card handlers are wired in `data/effects.js`.
+Tasks 48–56 completed. Overworld scoping decisions locked, NPC/scavenger hunt system implemented, Act 2 map stubbed, and all docs updated.
 
-**Completed this session:**
+**Completed in session:**
 
-- **Task 41:** `damageEnemy()` extracted as a shared helper in `createCombatSystem`. `attackEnemy()` refactored to use it. `combatSystem` injected into `createEffectSystem` so `applySanguineSiphon` routes drain-kills through `handleEnemyDeath`. Explicit comment added to `enemyAttack()` noting direct `player.hp` mutation is intentional (enemy damage bypasses Pain/Blood by design).
-- **Task 42:** Shared artifact/curse foundation wired — `data/artifacts.js` and `data/curses.js` effects integrated into run and combat lifecycle.
-- **Task 43:** `boss_02` mid-encounter enemy spawning implemented. `encounter.enemies.push()` support added; `thresholdsFired` Set initialized lazily on first damage.
-- **Task 44:** Enemy effect hooks refactored — `onDamaged`, `onDeath`, `onSummonKilled`, `onAllyDeath`, `onAttack`, `onCurse`, `onTurnStart` added as data-driven hooks on enemy objects. `handleEnemyDamaged`, `handleEnemyDeath`, and `handleSummonKilled` in `combat.js` now dispatch generically. `executeEnemyIntent` in `main.js` dispatches `onTurnStart`, `onAttack`, `onCurse`; clears turn-scoped flags after each enemy acts.
-- **Task 45:** `elite_02` (Bonecaller Adept) fully wired — `onCurse` sacrifices a living Grunt for +5 HP and +2 armor; `onAllyDeath` sets `gruntDiedThisTurn` flag; `onAttack` grants +2 attack if flag is set.
-- **Task 46:** `boss_01` (Bloodbound Butcher) fully wired — `onTurnStart` self-wounds 3 HP for +2 attack if HP > 3. Scaling damage already handled by `scaledDamageByMissingHp`.
-- **Task 47:** Champion card handlers added to `data/effects.js`. `bf_champion_01` (Fleshbinder) heals 2 HP per summon already on field at summon time (excludes self — counted before field push, confirm during playtesting). `ub_champion_01` (Bonecage Titan) sets `absorbsOverflow` flag on the card instance; `enemyAttack()` in `combat.js` routes overflow to the absorber before the player, with residual bleed-through if the absorber is destroyed.
+- **Task 48:** Overworld scoping pass — node count (15/act), type ratio, act-clear condition, boss loot table, and Hidden Secret scavenger hunt design all locked. Personal design note: Hidden Secret is a multi-step scavenger hunt seeded by the Gatekeeper, advanced by Wanderer NPCs, with `run.discoveredHints` as the chain tracker.
+- **Task 49:** `act1Map` rebuilt as a 15-node layout with named branching identities — Branch A (ritual), Branch B (combat), Branch C/E (NPC/scavenger), Branch D/F (combat), act-end combat mystery nodes, Gatekeeper, Boss.
+- **Task 50:** `resolveNPC()` added to `data/map.js` — resolves Wanderer nodes, advances hint chain via `run.discoveredHints`, logs NPC dialogue, grants small Marrow reward. `case "npc"` added to `resolveNode()` switch.
+- **Task 51:** `resolveCombatMystery()` added to `data/map.js` — weighted random enemy pool rolled at resolve time, result written back to `node.enemies` for `checkEncounterEnd()` compat. `case "combat_mystery"` added to `resolveNode()` switch.
+- **Task 52:** `resolveGatekeeper()` updated — dual role: (1) checks `run.artifacts` for archetype seal, (2) seeds `hint_01` on first contact whether blocked or open. Seal derived from `run.archetype` via `sealMap` at resolve time.
+- **Task 53:** `checkHintChain()` added to `data/map.js` — called after every NPC node completes; unlocks `node_11` (Hidden Secret) when `hint_02` + `hint_03` are both present. Exposed on `mapSystem` return object.
+- **Task 54:** `artifact_blood_seal` and `artifact_bone_seal` added to `data/artifacts.js`. Boss-kill grant wired in `main.js` `checkEncounterEnd()` — Act 1 boss death drops the player's archetype seal into `run.artifacts`. `run.act` added to run state, initialized to 1 in `startRun()`.
+- **Task 55:** Act 2 map stubbed in `data/map.js` — 15-node layout mirroring Act 1 shape. Placeholder enemy IDs and TODO-flagged titles throughout. Exposed as `act2Map` on `mapSystem` return object.
+- **Task 56:** `docs/game-design.md` updated — Node Types table expanded (Combat Mystery, Wanderer NPC, revised Gatekeeper and Hidden Secret), Run Structure updated (node ratio table, act-clear condition, boss loot table). `docs/project-notes.md` audited and consolidated.
 
-**Next task: Task 48 — Overworld scoping pass.**
-
-Resolve open design questions before Act 2 work begins:
-
-- Decide node count and type ratio for a standard act
-- Define act-clear condition and run progression trigger (Act 1 → Act 2 → Act 3)
-- Replace cleared `node_11` Gatekeeper requirement with a real artifact ID; define how artifacts are granted
-- Define boss loot table contents
-- Sketch Act 2 node map structure
-- Output: updated `docs/game-design.md` sections for Run Structure and Node Types; updated `map.js` Act 2 stub
+**Next task: Task 57** — wire the act progression trigger: on Act 1 boss kill, increment `run.act`, offer boss loot, and load `act2Map` as the active map. Requires a map selector in `main.js` that routes `getNode()` and `resolveNode()` based on `run.act`.
 
 Assume the current codebase reflects all completed tasks in `docs/project-notes.md` unless I state otherwise.
