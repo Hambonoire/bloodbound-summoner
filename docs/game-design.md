@@ -155,14 +155,18 @@ tradeoff:
 
 ### Boss Rewards
 
-Each boss drops a treasure chest on defeat. Contents vary by act difficulty:
+Each boss drops the following on defeat:
 
-- Rare or unique cards
-- Marrow
-- Artifacts
-- Possible run modifier
+| Drop                    | Guaranteed?        | Notes                                       |
+| ----------------------- | ------------------ | ------------------------------------------- |
+| Archetype Seal artifact | ✅ Act 1 Boss only | Required to pass the Gatekeeper             |
+| 1 rare/unique card      | ✅ Always          | Weighted toward next-act tier               |
+| Marrow bonus            | ✅ Always          | +3 on top of standard combat Marrow         |
+| Rogue pack offer        | 50% chance         | Consistent with standard pack reward system |
 
-**Pinned for later:** exact loot tables per boss
+Acts 2 and 3 bosses drop the same structure minus the Seal, plus a second rare card slot.
+
+**Pinned for later:** exact loot tables per act; second rare card slot implementation
 
 ---
 
@@ -170,29 +174,70 @@ Each boss drops a treasure chest on defeat. Contents vary by act difficulty:
 
 ### Acts
 
-Three acts total. Building Act 1 first.
+Three acts total. Building Act 1 first; Act 2 stubbed.
 
 Each act ends with a Boss node. Completing all three acts completes the run.
 
+Act progression fires on boss kill — `run.act` increments, boss loot is offered, and the next act's map loads.
+
 ### Map
 
-Node-based map inspired by Super Mario World / Cuphead. Branching paths unlock
-upon clearing the preceding node.
+Node-based map inspired by Super Mario World / Cuphead. Branching paths unlock upon clearing the preceding node.
+
+**Node count per act:** 12–15 nodes. Act 1 and Act 2 both use a 15-node structure. Rough ratio per act:
+
+| Node Type      | Count | Notes                                        |
+| -------------- | ----- | -------------------------------------------- |
+| Combat         | 5–6   | Core loop, primary Marrow source             |
+| Shop           | 1–2   | At least one mid-act, one pre-boss           |
+| Ritual         | 1     | Voluntary self-damage for a reward           |
+| Rest           | 1     | Before Boss                                  |
+| Curse          | 1     | Optional pain for a strong card              |
+| Combat Mystery | 1–2   | High variance, keeps runs unpredictable      |
+| Wanderer (NPC) | 2     | Only visible after Gatekeeper hint is active |
+| Gatekeeper     | 1     | Guards act exit; seeds hint_01               |
+| Hidden Secret  | 1     | Locked until hint chain resolves             |
+| Boss           | 1     | Act-ender                                    |
 
 **Pinned for later:** conditional unlock requirements per branch
 
 ### Node Types
 
-| Node          | Description                                                                    |
-| ------------- | ------------------------------------------------------------------------------ |
-| Combat        | Fight enemies, earn Marrow                                                     |
-| Shop          | Buy or upgrade cards with Marrow                                               |
-| Ritual        | Sacrifice HP or a card for a reward                                            |
-| Curse         | Take a curse, receive a powerful card                                          |
-| Rest          | Recover HP — drains Pain meter                                                 |
-| Mystery       | Unknown outcome, high variance                                                 |
-| Gatekeeper    | Requires specific artifacts from prior nodes                                   |
-| Hidden Secret | Invisible until node is cleared — may contain artifacts, Marrow, or rare cards |
+| Node           | Description                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Combat         | Fight enemies, earn Marrow                                                                                                                                 |
+| Shop           | Buy or upgrade cards with Marrow                                                                                                                           |
+| Ritual         | Sacrifice HP or a card for a reward                                                                                                                        |
+| Curse          | Take a curse, receive a powerful card                                                                                                                      |
+| Rest           | Recover HP — drains Pain meter                                                                                                                             |
+| Combat Mystery | Unknown enemy composition, rolled at resolve time. High variance — may be an elite, an unusual pair, or a swarm.                                           |
+| Wanderer (NPC) | Optional node. Appears only after the Gatekeeper hint is active. Interacting advances the hint chain by one step. May offer minor Marrow.                  |
+| Gatekeeper     | Requires your archetype seal (earned on Act 1 boss kill). On first contact, grants hint_01 — the first clue in the Hidden Secret chain.                    |
+| Hidden Secret  | Locked until the hint chain is complete. Unlocked by finding both Wanderers and returning to the Gatekeeper. May contain artifacts, Marrow, or rare cards. |
+
+### Map structure
+
+**The current map is mostly linear with two small branch pairs. Here's a redesigned layout with clearer branching identity — each branch has a deliberate personality:**
+
+node_01 (Combat — Entry)
+├── node_02 (Ritual) ← Branch A: self-damage / Blood path
+└── node_03 (Combat) ← Branch B: straight combat path
+↓ both merge →
+node_04 (Shop)
+├── node_05 (NPC — Wanderer_01) ← Branch C: lore/scavenger path — hint chain step 1
+└── node_06 (Combat) ← Branch D: pure combat
+↓ both merge →
+node_07 (Curse)
+├── node_08 (NPC — Wanderer_02) ← Branch E: lore/scavenger path — hint chain step 2
+└── node_09 (Combat) ← Branch F: pure combat
+↓ both merge →
+node_10 (Rest)
+├── node_11 (Hidden Secret — unlocks if both hints collected)
+└── node_12 (Combat Mystery — act-end pre-boss)
+↓ both merge →
+node_13 (Gatekeeper — grants hint_01, checks archetype seal)
+node_14 (Combat Mystery — act-end escalation)
+node_15 (Boss)
 
 ### Pack Rewards
 
@@ -228,3 +273,6 @@ risk, high reward — consistent with the game's identity.
 - Boss loot tables
 - Additional archetypes: Demonic/Infernal, Void/Eldritch, Bound/Shackled
 - Requirement stipulations for Gatekeeper nodes
+- Act 2 enemy IDs, NPC names/dialogue, and boss identity (currently stubbed with Act 1 placeholders)
+- Act 2 Gatekeeper artifact definition and boss-kill grant wiring
+- `checkHintChain()` act-aware extension for Act 2 hint IDs
