@@ -29,6 +29,11 @@ Systems implemented:
 - Archetype seals (`artifact_blood_seal`, `artifact_bone_seal`) defined and granted on Act 1 boss kill
 - `run.act` added to run state; initialized to 1 in `startRun()`
 - Act 2 map stubbed in `data/map.js` (15-node, mirrors Act 1 shape)
+- All card effect handlers wired in `data/effects.js` (on-summon) and `data/cards.js` (on-attack/on-death hooks)
+- Summon hook pattern (`handleSummonAttack`, `handleSummonDeath`) added to `data/combat.js`
+- `handleSummonDeath` pushes destroyed summons to `player.discard` (required for Hollow King resurrection)
+- Pain-gated passives (`bf_warrior_03`, `bf_apex_01`) re-evaluated at attack time in `attackEnemy()`
+- `costSystem.payCost()` writes `card._lastSacrifice` for Bonelord effect handler
 
 ---
 
@@ -72,13 +77,11 @@ Systems implemented:
 
 ### Card data and references
 
-- `ub_minion_03` (Grave Crawler): On-death effect currently references Bone Shard by name; should resolve to `ub_minion_01` by ID when on-death logic is implemented.
 - `bf_champion_01` (Fleshbinder): Currently wired. "heal 2 HP per summon on field" uses `player.field.length` at summon time; when effect resolution is implemented, does field count include or exclude the Fleshbinder itself? Currently excludes it (counted before field push) — confirm during playtesting.
 - `ub_champion_01` (Bonecage Titan): Currently wired. "absorbs overflow damage" will need to flag specific summons as overflow-blocking and change damage routing in `enemyAttack()`. `absorbsOverflow` is set on the card instance via `applyCardEffect`, but `getEnemyById` returns a shallow copy via spread. If Titan is ever re-copied mid-encounter the flag survives since it's on the field instance directly — but worth a note that the flag lives on the card object in `player.field`, not on a separate status tracker.
-- `ub_apex_01` (The Hollow King): resurrection from discard will need a target-selection step (auto or player choice) that reads `player.discard`.
 - `apexLocked: true` is currently the only card-level playability gate; if more unlock conditions are added, consider a generic `requiresFlag` field instead of more booleans.
-- `discardCard` is called inside `playCard` after `payCost` runs. Verify that sacrifice in `payCost` removes from `player.field` (not `player.hand`) so `discardCard` still finds the played card. Add a targeted test when revisiting sacrifice handling.
 - `selectPack` in `data/economy.js` pushes card objects by reference into `run.collection`. Consider pushing copies (`{ ...card }`) to avoid shared-reference bugs if card state ever becomes mutable (curses, upgrades).
+- `card._lastSacrifice` only stores the last sacrificed summon. Multi-sacrifice cards would need the full `sacrificed` array instead.
 
 ### Costs, Pain, Blood, and effect system
 
@@ -86,14 +89,6 @@ Systems implemented:
 - `canAfford()`: blocks play if an HP cost would reduce the player to 0 or below; the "death on cost" edge case may need revisiting depending on desired lethality.
 - Pain meter: `triggeredMilestones` is a Set inside `createCostSystem` and must be reset on match start via `costSystem.resetMilestones()` alongside the Pain reset.
 - `gainBlood()` reads `player.painZone` before `updatePainZone()` updates it, so Blood gain on the threshold-crossing damage uses the old rate; this is intentional for now but may be re-tuned after testing. Add a unit test for the doubled Blood rate at the `threshold` pain zone.
-- First-pass card effect resolution is wired through `data/effects.js` via `createEffectSystem({ player, run, encounter, costSystem, combatSystem })` since combatSystem was injected in Task 41.
-- `deckSystem.playCard()` resolves costs first through `costSystem.payCost(card)`, then card effects through `effectSystem.applyCardEffect(card)`, then performs normal post-play cleanup.
-- `bf_ritual_01` (Bloodletting Rite): resolves through `data/effects.js`; after HP self-damage cost is paid, grants bonus Blood through the effect system.
-- `ub_sacrifice_01` (Bone Harvest): resolves through `data/effects.js`; after sacrifice cost is paid, grants 2 Marrow and summons `ub_minion_01` (Bone Shard) from deck first, then discard. Field cap guard (`MAX_FIELD_SIZE`) added before push.
-- `bf_drain_01` (Sanguine Siphon): handler added to `data/effects.js`. Deals 3 damage to first living enemy, heals player 3 HP (capped at `maxHp`), grants 1 Blood via `costSystem.gainBlood(1)`. Overflow-to-Pain and player-choice targeting are still deferred (marked with TODO in the handler).
-- `generic_relic_01` (Bloodbound Sigil): fully wired. Raises `player.maxBlood` by 2 on acquisition, registers to `player.relics`, and grants 2 Blood on combat entry if Pain ≥ 10 via `onCombatStart()`. Duplicate guard prevents double-stacking.
-- The effect system is still first-pass only; unhandled cards fall back to effect-text logging until dedicated handlers are added.
-- Champion/Apex effects (overflow absorption, resurrection, attack debuff), curse application, and complex enemy/card interactions still need dedicated handlers.
 
 ### Combat flow and targeting
 
@@ -103,6 +98,9 @@ Systems implemented:
 - Enemy intent selection supports simple cycles and weighted random via `intents` and `intentWeights`; conditional (state-based) intent logic is a future enhancement.
 - `enemyAttack()` auto-selects the highest-defense blocker; letting the player choose a defender is deferred until UI/input exist.
 - `attackEnemy()` must be called manually; there is no targeting layer yet.
+- **`costSystem` not yet injected into `createCombatSystem`** — `handleSummonAttack` passes `costSystem: null` to hooks. Gore Hound's `gainBlood(1)` on-attack effect is stubbed until injection is wired.
+- **`allyDiedThisTurn` flag is never reset** — needs to be cleared at start of each player turn in `main.js` (`playerTurn()`) or end of enemy turn. Death Weaver's conditional +3 attack will persist across turns until this is fixed.
+- **`clearsDebuffOnNextTurn` flag (Wailing Revenant)** not yet read in `combat.js` — enemy attack debuff applies correctly but never expires. Wire expiry at start of player's next turn.
 - Battlefield summon cap: summon cards cannot be played if the field is already at cap; relics/cards that modify this cap are a design/balance follow-up.
 
 ### Draw, hand management, and deck building
@@ -163,14 +161,9 @@ Systems implemented:
 - Handles: `curse_blood_debt` (−2 HP), `artifact_blood_chalice` (+2 Blood), `generic_relic_01` (+2 Blood if Pain ≥ 10).
 - Relic check is gated on `player.relics` — silently no-ops for relics not yet registered.
 
-### Enemy effects (data-only, pending implementation)
+### Enemy effects
 
-- `soldier_02` (Cursebrand Warrior): Bleed fires via `executeEnemyIntent` effect-text check. ✅
-- `grunt_02`, `elite_01`, `boss_01`: scaled damage wired via `scaledDamageByMissingHp()` in `enemyAttack()`. ✅
-- Rage (`vein_sentinel`): wired in `handleEnemyDamaged()`. ✅
-- `elite_02` (Bonecaller Adept): sacrifice/heal and on-kill damage bonus — no resolver. ✅
-- `boss_01` (Bloodbound Butcher): self-wound buff at turn start — no resolver. ✅
-- `boss_02` (Grave Tyrant): on-kill spawning and HP thresholds wired in combat.js. `thresholdsFired` Set initialized lazily on first damage — seed in `startEncounter()` when encounter reset is formalized. ✅
+- `soldier_02` Bleed, `grunt_02`/`elite_01`/`boss_01` scaled damage, `vein_sentinel` Rage, `elite_02` sacrifice/heal + on-kill bonus, `boss_01` self-wound buff, `boss_02` on-kill spawning + HP thresholds — all wired. ✅
 
 ### Systems pinned to future work
 
@@ -263,3 +256,9 @@ Systems implemented:
 54. ✅ Add `artifact_blood_seal` and `artifact_bone_seal` to `data/artifacts.js` as data entries. Wire boss-kill grant in `main.js`: Act 1 boss death drops the player's archetype seal into `run.artifacts`.
 55. ✅ Stub Act 2 map in `data/map.js` — mirror Act 1's 15-node shape with placeholder enemy IDs, adjusted node titles, and a comment flagging it for stat/enemy tuning. No new node types or resolvers needed yet.
 56. ✅ Update `docs/game-design.md` — add Wanderer (NPC) and Combat Mystery to the Node Types table; update Run Structure section with node count (15), type ratio, act-clear condition, and boss loot table contents; add Hidden Secret scavenger hunt flow description.
+57. ✅ Act progression: increment `run.act` on boss kill; wire act 2 map selector
+58. ✅ Full card effect pass — on-summon handlers for all champion/apex/warrior/support cards in `data/effects.js`
+59. ✅ Summon hook pattern — `handleSummonAttack` / `handleSummonDeath` dispatchers in `combat.js`; on-attack/on-death hooks on minion/warrior cards in `data/cards.js`
+60. Inject `costSystem` into `createCombatSystem` so `handleSummonAttack` can pass it to hooks (unblocks Gore Hound `gainBlood`)
+61. Reset `allyDiedThisTurn` flag on all field summons at start of player turn in `main.js`
+62. Wire `clearsDebuffOnNextTurn` debuff expiry in `combat.js` (Wailing Revenant)
