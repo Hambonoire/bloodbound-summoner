@@ -23,12 +23,12 @@ function createCostSystem({ player, onEndRun }) {
       player.marrow -= c.marrow;
     }
     if (c.sacrifice) {
-      // sacrifices the last summon on the field for now
-      // TODO: let player choose which summon to sacrifice
       const sacrificed = player.field.splice(
         player.field.length - c.sacrifice,
         c.sacrifice,
       );
+      // Store last sacrifice on the card so effect handlers (e.g. Bonelord) can read it
+      card._lastSacrifice = sacrificed[sacrificed.length - 1] || null;
       console.log(`Sacrificed: ${sacrificed.map((s) => s.name).join(", ")}`);
     }
   }

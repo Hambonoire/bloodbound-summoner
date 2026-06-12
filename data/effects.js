@@ -27,6 +27,10 @@ function createEffectSystem({
         return applyBonecageTitan(card);
       case "ub_champion_02":
         return applyWailingRevenant(card);
+      case "bf_warrior_02":
+        return applyVeinRipper(card);
+      case "ub_warrior_02":
+        return applyBonelord(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -201,6 +205,52 @@ function createEffectSystem({
 
     // Flag the summon so combat.js can clear debuffs at end of player's next turn
     card.clearsDebuffOnNextTurn = true;
+  }
+
+  function applyVeinRipper(card) {
+    costSystem.dealSelfDamage(3);
+    console.log(`[Effect] ${card.name}: Dealt 3 self-damage on summon.`);
+
+    costSystem.gainBlood(3);
+    console.log(
+      `[Effect] ${card.name}: Gained 3 Blood. Blood: ${player.blood}`,
+    );
+  }
+
+  function applyBonelord(card) {
+    // The sacrificed summon was removed from field before playCard() calls applyCardEffect.
+    // We store the last sacrifice on the card object via costSystem.payCost() — check for it here.
+    const sacrificed = card._lastSacrifice || null;
+
+    if (!sacrificed) {
+      console.log(
+        `[Effect] ${card.name}: No sacrifice data found — skipping bonus damage.`,
+      );
+      return;
+    }
+
+    const target =
+      encounter && encounter.enemies
+        ? encounter.enemies.find((e) => e.hp > 0)
+        : null;
+
+    if (!target) {
+      console.log(`[Effect] ${card.name}: No valid enemy target.`);
+      return;
+    }
+
+    const dmg = sacrificed.attack || 0;
+    if (dmg <= 0) {
+      console.log(
+        `[Effect] ${card.name}: Sacrificed summon had 0 attack — no bonus damage.`,
+      );
+      return;
+    }
+
+    combatSystem.damageEnemy(target, dmg);
+    console.log(
+      `[Effect] ${card.name}: ${sacrificed.name} dealt ${dmg} damage on sacrifice.`,
+    );
   }
 
   return {
