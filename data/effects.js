@@ -31,6 +31,10 @@ function createEffectSystem({
         return applyVeinRipper(card);
       case "ub_warrior_02":
         return applyBonelord(card);
+      case "bf_apex_01":
+        return applyBloodedAscendant(card);
+      case "ub_apex_01":
+        return applyHollowKing(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -250,6 +254,60 @@ function createEffectSystem({
     combatSystem.damageEnemy(target, dmg);
     console.log(
       `[Effect] ${card.name}: ${sacrificed.name} dealt ${dmg} damage on sacrifice.`,
+    );
+  }
+
+  function applyBloodedAscendant(card) {
+    costSystem.gainBlood(5);
+    console.log(
+      `[Effect] ${card.name}: Gained 5 Blood. Blood: ${player.blood}`,
+    );
+
+    // Double damage passive: flag the summon so combat.js can check it at attack time
+    if (player.pain > 20) {
+      card.doubleDamage = true;
+      console.log(`[Effect] ${card.name}: Pain > 20 — double damage active.`);
+    } else {
+      card.doubleDamage = false;
+      console.log(
+        `[Effect] ${card.name}: Pain ${player.pain} — double damage inactive until Pain > 20.`,
+      );
+    }
+  }
+
+  function applyHollowKing(card) {
+    if (!player.discard || player.discard.length === 0) {
+      console.log(`[Effect] ${card.name}: No summons in discard to resurrect.`);
+      return;
+    }
+
+    const deadSummons = player.discard.filter((c) => c.type === "summon");
+    if (deadSummons.length === 0) {
+      console.log(`[Effect] ${card.name}: No summon cards in discard.`);
+      return;
+    }
+
+    if (player.field.length >= MAX_FIELD_SIZE) {
+      console.log(
+        `[Effect] ${card.name}: Field is full — resurrection blocked.`,
+      );
+      return;
+    }
+
+    // Resurrect the most recently discarded summon
+    const target = deadSummons[deadSummons.length - 1];
+    const idx = player.discard.lastIndexOf(target);
+    player.discard.splice(idx, 1);
+
+    const resurrected = {
+      ...target,
+      defense: Math.floor(target.defense / 2),
+      _resurrected: true,
+    };
+
+    player.field.push(resurrected);
+    console.log(
+      `[Effect] ${card.name}: Resurrected ${resurrected.name} at ${resurrected.defense} defense.`,
     );
   }
 
