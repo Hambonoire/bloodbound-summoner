@@ -54,6 +54,15 @@ const cards = [
     attack: 1,
     defense: 1,
     effect: "On attack: deal 1 self-damage, gain 1 Blood.",
+    onAttack(self, { costSystem, player }) {
+      // costSystem not yet injected into handleSummonAttack — use player direct for now
+      // TODO: inject costSystem into summon hook context
+      player.hp -= 1;
+      console.log(
+        `[Hook] ${self.name}: 1 self-damage on attack. HP: ${player.hp}`,
+      );
+      // gainBlood via costSystem — stubbed until injection is wired
+    },
   },
   {
     id: "bf_minion_03",
@@ -65,6 +74,12 @@ const cards = [
     attack: 3,
     defense: 0,
     effect: "On death: deal 2 self-damage.",
+    onDeath(self, { player }) {
+      player.hp -= 2;
+      console.log(
+        `[Hook] ${self.name}: 2 self-damage on death. HP: ${player.hp}`,
+      );
+    },
   },
 
   // --- BLOOD/FLESH — WARRIOR ---
@@ -139,6 +154,12 @@ const cards = [
     attack: 2,
     defense: 1,
     effect: "On death: add 1 Marrow.",
+    onDeath(self, { player }) {
+      player.marrow += 1;
+      console.log(
+        `[Hook] ${self.name}: Gained 1 Marrow. Marrow: ${player.marrow}`,
+      );
+    },
   },
   {
     id: "ub_minion_03",
@@ -150,6 +171,20 @@ const cards = [
     attack: 1,
     defense: 1,
     effect: "On death: summon one Bone Shard.",
+    onDeath(self, { player, encounter }) {
+      const { MAX_FIELD_SIZE, cards } = require("./cards");
+      if (player.field.length >= MAX_FIELD_SIZE) {
+        console.log(
+          `[Hook] ${self.name}: Field full — Bone Shard not summoned.`,
+        );
+        return;
+      }
+      const shard = cards.find((c) => c.id === "ub_minion_01");
+      if (shard) {
+        player.field.push({ ...shard });
+        console.log(`[Hook] ${self.name}: Summoned Bone Shard on death.`);
+      }
+    },
   },
 
   // --- UNDEAD/BONE — WARRIOR ---
@@ -187,6 +222,14 @@ const cards = [
     attack: 3,
     defense: 4,
     effect: "On attack: if a friendly summon died this turn, +3 attack.",
+    onAttack(self, { player }) {
+      if (self.allyDiedThisTurn) {
+        self._deathWeaverBonus = 3;
+        console.log(`[Hook] ${self.name}: Ally died this turn — +3 attack.`);
+      } else {
+        self._deathWeaverBonus = 0;
+      }
+    },
   },
 
   // --- Champion Tier ---

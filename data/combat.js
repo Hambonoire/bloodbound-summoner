@@ -34,7 +34,28 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
     const enemy = encounter.enemies.find((e) => e.id === enemyId);
     if (!enemy || enemy.hp <= 0) return;
 
-    const totalAttack = attackerCard.attack + player.summonAttackBonus;
+    // Re-evaluate Pain-gated passives at attack time
+    if (attackerCard.id === "bf_warrior_03") {
+      attackerCard._painBonus = player.painZone === "threshold" ? 2 : 0;
+    }
+    if (attackerCard.id === "bf_apex_01") {
+      attackerCard.doubleDamage = player.pain > 20;
+    }
+
+    // Fire summon on-attack hook
+    handleSummonAttack(attackerCard);
+
+    let totalAttack = attackerCard.attack + player.summonAttackBonus;
+
+    // Apply Pain-gated bonus
+    if (attackerCard._painBonus) totalAttack += attackerCard._painBonus;
+
+    // Apply double damage
+    if (attackerCard.doubleDamage) totalAttack *= 2;
+
+    if (attackerCard._deathWeaverBonus)
+      totalAttack += attackerCard._deathWeaverBonus;
+
     console.log(
       `${attackerCard.name} attacks ${enemy.name} for ${totalAttack}.`,
     );
@@ -45,6 +66,24 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
     const missingHp = player.maxHp - player.hp;
     const bonus = Math.floor(missingHp / 5);
     return enemy.attack + bonus;
+  }
+
+  function handleSummonAttack(summon) {
+    if (!summon) return;
+    if (summon.onAttack)
+      summon.onAttack(summon, { player, encounter, costSystem: null });
+  }
+
+  function handleSummonDeath(summon) {
+    if (!summon) return;
+    player.discard.push(summon);
+    console.log(`${summon.name} sent to discard.`);
+    if (summon.onDeath) summon.onDeath(summon, { player, encounter });
+
+    // Notify surviving field summons that an ally died this turn
+    for (const s of player.field) {
+      if (s.allyDiedThisTurn !== undefined) s.allyDiedThisTurn = true;
+    }
   }
 
   function enemyAttack(enemy) {
@@ -79,7 +118,7 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
           const absorberOverflow = overflow - absorber.defense;
           if (absorberOverflow > 0) {
             player.field = player.field.filter((s) => s.id !== absorber.id);
-            console.log(`${absorber.name} destroyed absorbing overflow.`);
+            handleSummonDeath(absorber);
             // Remaining overflow after absorber is destroyed hits player
             player.hp -= absorberOverflow;
             console.log(
@@ -107,8 +146,7 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
 
       if (damage >= blocker.defense) {
         player.field = player.field.filter((s) => s.id !== blocker.id);
-        console.log(`${blocker.name} destroyed.`);
-        // Grave Tyrant: spawn Shambling Corpse on summon kill
+        handleSummonDeath(blocker); // replaces the console.log + fires hooks + discards
         handleSummonKilled(enemy);
       }
     } else {
@@ -153,6 +191,8 @@ function createCombatSystem({ player, encounter, onEndRun, getEnemyById }) {
     handleEnemyDamaged,
     handleEnemyDeath,
     damageEnemy,
+    handleSummonAttack,
+    handleSummonDeath,
   };
 }
 
