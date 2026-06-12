@@ -393,7 +393,7 @@ function checkEncounterEnd() {
   if (allDead) {
     encounter.active = false;
 
-    let map = mapSystem.act1Map;
+    const map = run.act === 1 ? mapSystem.act1Map : mapSystem.act2Map;
 
     console.log("--- Encounter won. ---");
 
@@ -427,6 +427,8 @@ function checkEncounterEnd() {
         );
         logRunArtifacts();
       }
+      run.act = 2;
+      console.log("[Act Progression] Act 1 complete. Entering Act 2.");
     }
 
     const totalMarrow = baseMarrow + bossBonus;
