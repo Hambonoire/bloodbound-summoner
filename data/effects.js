@@ -21,8 +21,12 @@ function createEffectSystem({
         return applyBloodboundSigil(card);
       case "bf_champion_01":
         return applyFleshbinder(card);
+      case "bf_champion_02":
+        return applyHemorrhageKnight(card);
       case "ub_champion_01":
         return applyBonecageTitan(card);
+      case "ub_champion_02":
+        return applyWailingRevenant(card);
       default:
         if (card.effect) {
           console.log(`Effect triggered [${card.name}]: ${card.effect}`);
@@ -151,6 +155,52 @@ function createEffectSystem({
     // before routing overflow to the player.
     card.absorbsOverflow = true;
     console.log(`[Effect] ${card.name}: Overflow absorption active.`);
+  }
+
+  function applyHemorrhageKnight(card) {
+    const target =
+      encounter && encounter.enemies
+        ? encounter.enemies.find((e) => e.hp > 0)
+        : null;
+
+    if (!target) {
+      console.log(
+        `[Effect] ${card.name}: No valid target for on-summon damage.`,
+      );
+    } else {
+      combatSystem.damageEnemy(target, 3);
+      console.log(`[Effect] ${card.name}: Dealt 3 damage to ${target.name}.`);
+    }
+
+    costSystem.gainBlood(1);
+    console.log(
+      `[Effect] ${card.name}: Gained 1 Blood. Blood: ${player.blood}`,
+    );
+  }
+
+  function applyWailingRevenant(card) {
+    if (!encounter || !encounter.enemies) {
+      console.log(`[Effect] ${card.name}: No active encounter.`);
+      return;
+    }
+
+    const living = encounter.enemies.filter((e) => e.hp > 0);
+    if (living.length === 0) {
+      console.log(`[Effect] ${card.name}: No living enemies to debuff.`);
+      return;
+    }
+
+    living.forEach((e) => {
+      e._attackDebuff = (e._attackDebuff || 0) + 1;
+      e.attack = Math.max(0, e.attack - 1);
+    });
+
+    console.log(
+      `[Effect] ${card.name}: All ${living.length} enemy/enemies lost 1 attack this turn.`,
+    );
+
+    // Flag the summon so combat.js can clear debuffs at end of player's next turn
+    card.clearsDebuffOnNextTurn = true;
   }
 
   return {
